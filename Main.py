@@ -112,4 +112,4 @@ async def balance(ctx):
 
     await ctx.send(embed=embed)
 
-bot.run('MTE3NDk5MzEzNTY2ODAzOTc2MA.GcewJh.fqSTNCMJR1rYvhyodlrK8rlc_pxKjl7ptexPU4')
+bot.run('nuh uh')
