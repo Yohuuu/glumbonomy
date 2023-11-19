@@ -184,6 +184,46 @@ async def removemoney(ctx, userToRemoveMoneyFrom: discord.Member, amountOfMoneyT
         )
     await ctx.send(embed=embed)
 
+@bot.command()
+@commands.cooldown(1, 7200, commands.BucketType.user)
+async def rob(ctx, userToRemoveMoneyFrom: discord.Member):
+    status = random.random() < 0.2
+    try:
+        conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
+    except Exception as e:
+        await ctx.send(e)
+    
+    try:
+        amountOfMoneyStolen = await get_glumbo_data(userToRemoveMoneyFrom.name) * 0.05
+        if status < 0.2:
+            if amountOfMoneyStolen == "This user doesn't have any money to rob!":
+                embed = discord.Embed(
+                    title="Rob", description=f"{amountOfMoneyStolen}", colour=discord.Color.yellow()
+                )
+            else:
+                amountOfMoney = await get_glumbo_data(userToRemoveMoneyFrom.name)
+                amountOfMoneyStolen = round(amountOfMoney * 0.05)
+                amountOfMoneyStolen = await remove_glumbo(conn, userToRemoveMoneyFrom.name, amountOfMoneyStolen)
+                embed = discord.Embed(
+                title="Rob", description=f"Stole <:glumbo:1003615679200645130>{amountOfMoneyStolen} from the user {userToRemoveMoneyFrom.mention}", colour=discord.Color.yellow()
+            )
+            await ctx.send(embed=embed)
+        else:
+            fine = random.randrange(0, 1001)
+            amountOfMoneyStolen = await remove_glumbo(conn, ctx.author.name, fine)
+            embed = discord.Embed(
+                title="Rob", description=f"You tried to rob {userToRemoveMoneyFrom.mention}, but you were caught and paid a <:glumbo:1003615679200645130>{fine} fine!", colour=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+
+        if amountOfMoneyStolen == "This user doesn't have any money to rob!":
+            embed = discord.Embed(
+                title="Rob", description=f"{amountOfMoneyStolen}", colour=discord.Color.yellow()
+            )
+            await ctx.send(embed=embed)
+    except Exception as e:
+        await ctx.send(e)
+
 @bot.command(aliases=['bal'])
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def balance(ctx):
