@@ -99,3 +99,6 @@ async def get_glumbo_data(username):
         return "You don't have any glumbo!"
     else:
         return glumbo[0] 
+    
+async def backup():
+    await backup()
