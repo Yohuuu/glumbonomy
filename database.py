@@ -47,17 +47,18 @@ async def insert_glumbo(conn, username, glumboAmount):
     cur = await conn.cursor()
     
     # Check if the username exists in the database
-    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE username='{username}'")
+    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE username=?", (username,))
     user_exists = await cur.fetchone()
     
     if user_exists[0] > 0:
         # If the username exists, update the glumboAmount
-        sql = f'''UPDATE userData SET glumboAmount = glumboAmount + {glumboAmount} WHERE username = '{username}' '''
+        sql = 'UPDATE userData SET glumboAmount = glumboAmount + ? WHERE username = ?'
+        await cur.execute(sql, (glumboAmount, username))
     else:
         # If the username does not exist, insert a new user
-        sql = f'''INSERT INTO userData(username, glumboAmount) VALUES('{username}', {glumboAmount})'''
+        sql = 'INSERT INTO userData(username, glumboAmount) VALUES(?, ?)'
+        await cur.execute(sql, (username, glumboAmount))
     
-    await cur.execute(sql)
     await conn.commit()
     await conn.close()
 
@@ -77,8 +78,8 @@ async def remove_glumbo(conn, username, glumboAmount):
     
     if user_exists[0] > 0:
         # If the username exists, update the glumboAmount
-        sql = f'''UPDATE userData SET glumboAmount = glumboAmount - {glumboAmount} WHERE username = '{username}' '''
-        await cur.execute(sql)
+        sql = "UPDATE userData SET glumboAmount = glumboAmount - ? WHERE username = ?"
+        await cur.execute(sql, (glumboAmount, str(username)))
         await conn.commit()
         return f"Removed {glumboAmount} glumbo from {username}"
     else:
