@@ -2,6 +2,7 @@ import discord
 import random
 import aiosqlite
 import database
+import asyncio
 from database import insert_glumbo
 from database import create_connection
 from database import get_glumbo_data
@@ -51,7 +52,7 @@ async def work(ctx):
         # add money to the user's account in the database
         await insert_glumbo(conn, username, glumboAmount)
     except Exception as e:
-        await ctx.send(e)
+        await print(e)
     
     try:
         job = await job_work(glumboAmount)
@@ -59,8 +60,10 @@ async def work(ctx):
             title="Work", description=job, colour=discord.Color.yellow()
         )
         await ctx.send(embed=embed)
+        await conn.close()
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
 @bot.command()
 @commands.cooldown(1, 900, commands.BucketType.user)
@@ -69,7 +72,8 @@ async def crime(ctx):
         glumboAmount = random.randrange(0, 1001)
         status = random.choice([True, False])
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
     username = ctx.author.name
 
@@ -83,7 +87,8 @@ async def crime(ctx):
         else:
             await remove_glumbo(conn, username, glumboAmount)
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
     
     try:
         job = await job_crime(glumboAmount, status)
@@ -95,8 +100,10 @@ async def crime(ctx):
             title="Crime", description=job, colour=status_color
         )
         await ctx.send(embed=embed)
+        await conn.close()
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
 
 @bot.command()
@@ -106,7 +113,8 @@ async def slut(ctx):
         glumboAmount = random.randrange(0, 1001)
         status = random.choice([True, False])
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
     username = ctx.author.name
 
@@ -120,7 +128,8 @@ async def slut(ctx):
         else:
             await remove_glumbo(conn, username, glumboAmount)
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
     
     try:
         job = await job_slut(glumboAmount, status)
@@ -132,8 +141,10 @@ async def slut(ctx):
             title="Slut", description=job, colour=status_color
         )
         await ctx.send(embed=embed)
+        await conn.close()
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
 
 @bot.command()
@@ -151,12 +162,14 @@ async def addmoney(ctx, userToGiveMoneyTo: discord.Member, amountOfMoneyToGive):
         conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
         data = await insert_glumbo(conn, userToGiveMoneyTo.name, amountOfMoneyToGive)
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
     embed = discord.Embed(
         title="Add Money", description=f"Added <:glumbo:1003615679200645130>{amountOfMoneyToGive} to the user {userToGiveMoneyTo.mention}", colour=discord.Color.yellow()
     )
     await ctx.send(embed=embed)
+    await conn.close()
 
 @bot.command()
 @commands.cooldown(1, 15, commands.BucketType.user)
@@ -171,7 +184,8 @@ async def removemoney(ctx, userToRemoveMoneyFrom: discord.Member, amountOfMoneyT
         conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
         data = await remove_glumbo(conn, userToRemoveMoneyFrom.name, amountOfMoneyToRemove)
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
     if data == "This user doesn't have any money to remove!":
         embed = discord.Embed(
@@ -182,25 +196,26 @@ async def removemoney(ctx, userToRemoveMoneyFrom: discord.Member, amountOfMoneyT
             title="Add Money", description=f"Removed <:glumbo:1003615679200645130>{amountOfMoneyToRemove} from the user {userToRemoveMoneyFrom.mention}", colour=discord.Color.yellow()
         )
     await ctx.send(embed=embed)
+    await conn.close()
 
 @bot.command()
-@commands.cooldown(1, 7200, commands.BucketType.user)
+@commands.cooldown(1, 1, commands.BucketType.user)
 async def rob(ctx, userToRemoveMoneyFrom: discord.Member):
-    status = random.random() < 0.1
+    status = random.random()
     try:
         conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
     except Exception as e:
-        await ctx.send(e)
+        await print(e)
     
     try:
-        amountOfMoneyStolen = await get_glumbo_data(userToRemoveMoneyFrom.name) * 0.05
-        if status < 0.1:
+        amountOfMoneyStolen = await get_glumbo_data(conn, userToRemoveMoneyFrom.name) * 0.05
+        if status < 0.05:
             if amountOfMoneyStolen == "This user doesn't have any money to rob!":
                 embed = discord.Embed(
                     title="Rob", description=f"{amountOfMoneyStolen}", colour=discord.Color.yellow()
                 )
             else:
-                amountOfMoney = await get_glumbo_data(userToRemoveMoneyFrom.name)
+                amountOfMoney = await get_glumbo_data(conn, userToRemoveMoneyFrom.name)
                 amountOfMoneyStolen = round(amountOfMoney * 0.05)
                 amountOfMoneyStolen = await remove_glumbo(conn, userToRemoveMoneyFrom.name, amountOfMoneyStolen)
                 embed = discord.Embed(
@@ -220,18 +235,21 @@ async def rob(ctx, userToRemoveMoneyFrom: discord.Member):
                 title="Rob", description=f"{amountOfMoneyStolen}", colour=discord.Color.yellow()
             )
             await ctx.send(embed=embed)
+            await conn.close()
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
 @bot.command(aliases=['bal'])
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def balance(ctx):
     try:
+        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
         username = ctx.author.name
-        conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
-        data = await get_glumbo_data(username)
+        data = await get_glumbo_data(conn, username)
     except Exception as e:
-        await ctx.send(e)
+        await conn.close()
+        await print(e)
 
     if data == "You don't have any glumbo!":
         embed = discord.Embed(
@@ -243,5 +261,30 @@ async def balance(ctx):
     )
 
     await ctx.send(embed=embed)
+    await conn.close()
 
-bot.run(token)
+async def reconnect_loop():
+    while True:
+        await asyncio.sleep(1)
+        if bot.is_closed():
+            print('Bot is disconnected, attempting to reconnect...')
+            try:
+                await bot.start(token)
+                print('Reconnect successful.')
+                break
+            except Exception as e:
+                print(f'Reconnect failed, {e}, retrying in 5 seconds...')
+                await asyncio.sleep(5)
+
+async def main():
+    try:
+        await bot.start(token)
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f"Fatal exception {e}, running reconnect loop.")
+        await reconnect_loop()
+
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())

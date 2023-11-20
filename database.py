@@ -12,12 +12,11 @@ async def create_connection(db_file):
         conn = await aiosqlite.connect(db_file)
         return conn
     except Error as e:
+        await conn.close()
         print(e)
 
-    return conn
 
-
-async def create_table(create_table_sql):
+async def create_table():
     """ create a table from the create_table_sql statement
     :param conn: Connection object
     :param create_table_sql: a CREATE TABLE statement
@@ -33,7 +32,9 @@ async def create_table(create_table_sql):
 
 
                         """)
+        await conn.close()
     except Error as e:
+        await conn.close()
         print(e)
 
 async def insert_glumbo(conn, username, glumboAmount):
@@ -81,24 +82,19 @@ async def remove_glumbo(conn, username, glumboAmount):
         sql = "UPDATE userData SET glumboAmount = glumboAmount - ? WHERE username = ?"
         await cur.execute(sql, (glumboAmount, str(username)))
         await conn.commit()
+        await conn.close()
         return glumboAmount
     else:
+        await conn.close()
         return "This user doesn't have any money to remove!"  
-    await conn.close()
 
-async def get_glumbo_data(username):
-    # create a database connection
-    conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+async def get_glumbo_data(conn, username):
     c = await conn.cursor()
     await c.execute(f"SELECT glumboAmount FROM userData WHERE username = '{username}'")
     glumbo = await c.fetchone()
-    # close the connection
-    await conn.close()
-    # return the fetched data
     if glumbo == None:
         return "You don't have any glumbo!"
     else:
-        return glumbo[0] 
+        return glumbo[0]
+        
     
-async def backup():
-    await backup()
