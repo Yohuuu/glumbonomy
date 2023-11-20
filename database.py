@@ -81,7 +81,7 @@ async def remove_glumbo(conn, username, glumboAmount):
         sql = "UPDATE userData SET glumboAmount = glumboAmount - ? WHERE username = ?"
         await cur.execute(sql, (glumboAmount, str(username)))
         await conn.commit()
-        return f"Removed {glumboAmount} glumbo from {username}"
+        return glumboAmount
     else:
         return "This user doesn't have any money to remove!"  
     await conn.close()

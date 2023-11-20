@@ -9,7 +9,6 @@ from database import remove_glumbo
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
-from cryptography.fernet import Fernet
 from config import token
 from aiosqlite import Error
 from discord.ext import commands
@@ -187,7 +186,7 @@ async def removemoney(ctx, userToRemoveMoneyFrom: discord.Member, amountOfMoneyT
 @bot.command()
 @commands.cooldown(1, 7200, commands.BucketType.user)
 async def rob(ctx, userToRemoveMoneyFrom: discord.Member):
-    status = random.random() < 0.2
+    status = random.random() < 0.1
     try:
         conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
     except Exception as e:
@@ -195,7 +194,7 @@ async def rob(ctx, userToRemoveMoneyFrom: discord.Member):
     
     try:
         amountOfMoneyStolen = await get_glumbo_data(userToRemoveMoneyFrom.name) * 0.05
-        if status < 0.2:
+        if status < 0.1:
             if amountOfMoneyStolen == "This user doesn't have any money to rob!":
                 embed = discord.Embed(
                     title="Rob", description=f"{amountOfMoneyStolen}", colour=discord.Color.yellow()
