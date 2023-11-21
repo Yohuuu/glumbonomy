@@ -12,30 +12,28 @@ async def create_connection(db_file):
         conn = await aiosqlite.connect(db_file)
         return conn
     except Error as e:
-        await conn.close()
+        if conn:
+            await conn.close()
         print(e)
 
-
 async def create_table():
-    """ create a table from the create_table_sql statement
-    :param conn: Connection object
-    :param create_table_sql: a CREATE TABLE statement
-    :return:
-    """
     try:
         conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
-        c = conn.cursor()
-        await c.execute(""" CREATE TABLE userData (
-                                username VARCHAR2(32) PRIMARY KEY NOT NULL,
-                                glumboAmount integer DEFAULT 0
+        c = await conn.cursor()
+        await c.execute("""CREATE TABLE userItems (
+                            userID BIGINT NOT NULL,
+                            itemID INTEGER NOT NULL,
+                            FOREIGN KEY (userID) REFERENCES userData(userID),
+                            FOREIGN KEY (itemID) REFERENCES shop(itemID)
                             );
 
-
                         """)
+        await conn.commit()
         await conn.close()
     except Error as e:
         await conn.close()
         print(e)
+
 
 async def insert_glumbo(conn, username, glumboAmount):
     """
@@ -48,16 +46,16 @@ async def insert_glumbo(conn, username, glumboAmount):
     cur = await conn.cursor()
     
     # Check if the username exists in the database
-    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE username=?", (username,))
+    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE userID=?", (username,))
     user_exists = await cur.fetchone()
     
     if user_exists[0] > 0:
         # If the username exists, update the glumboAmount
-        sql = 'UPDATE userData SET glumboAmount = glumboAmount + ? WHERE username = ?'
+        sql = 'UPDATE userData SET glumboAmount = glumboAmount + ? WHERE userID = ?'
         await cur.execute(sql, (glumboAmount, username))
     else:
         # If the username does not exist, insert a new user
-        sql = 'INSERT INTO userData(username, glumboAmount) VALUES(?, ?)'
+        sql = 'INSERT INTO userData(userID, glumboAmount) VALUES(?, ?)'
         await cur.execute(sql, (username, glumboAmount))
     
     await conn.commit()
@@ -74,12 +72,12 @@ async def remove_glumbo(conn, username, glumboAmount):
     cur = await conn.cursor()
     
     # Check if the username exists in the database
-    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE username='{username}'")
+    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE userID='{username}'")
     user_exists = await cur.fetchone()
     
     if user_exists[0] > 0:
         # If the username exists, update the glumboAmount
-        sql = "UPDATE userData SET glumboAmount = glumboAmount - ? WHERE username = ?"
+        sql = "UPDATE userData SET glumboAmount = glumboAmount - ? WHERE userID = ?"
         await cur.execute(sql, (glumboAmount, str(username)))
         await conn.commit()
         await conn.close()
@@ -90,11 +88,11 @@ async def remove_glumbo(conn, username, glumboAmount):
 
 async def get_glumbo_data(conn, username):
     c = await conn.cursor()
-    await c.execute(f"SELECT glumboAmount FROM userData WHERE username = '{username}'")
+    await c.execute(f"SELECT glumboAmount FROM userData WHERE userID = '{username}'")
     glumbo = await c.fetchone()
     if glumbo == None:
         return "You don't have any glumbo!"
     else:
         return glumbo[0]
-        
+
     
