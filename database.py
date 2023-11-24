@@ -51,11 +51,11 @@ async def insert_glumbo(conn, username, glumboAmount):
     
     if user_exists[0] > 0:
         # If the username exists, update the glumboAmount
-        sql = 'UPDATE userData SET glumboAmount = glumboAmount + ? WHERE userID = ?'
+        sql = 'UPDATE userData SET cash = cash + ? WHERE userID = ?'
         await cur.execute(sql, (glumboAmount, username))
     else:
         # If the username does not exist, insert a new user
-        sql = 'INSERT INTO userData(userID, glumboAmount) VALUES(?, ?)'
+        sql = 'INSERT INTO userData(userID, cash) VALUES(?, ?)'
         await cur.execute(sql, (username, glumboAmount))
     
     await conn.commit()
@@ -77,22 +77,110 @@ async def remove_glumbo(conn, username, glumboAmount):
     
     if user_exists[0] > 0:
         # If the username exists, update the glumboAmount
-        sql = "UPDATE userData SET glumboAmount = glumboAmount - ? WHERE userID = ?"
+        sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
         await cur.execute(sql, (glumboAmount, str(username)))
         await conn.commit()
         await conn.close()
         return glumboAmount
     else:
         await conn.close()
-        return "This user doesn't have any money to remove!"  
+        return "This user doesn't have any money to remove!" 
+        
 
-async def get_glumbo_data(conn, username):
+async def get_cash_data(conn, userID):
     c = await conn.cursor()
-    await c.execute(f"SELECT glumboAmount FROM userData WHERE userID = '{username}'")
+    await c.execute(f"SELECT cash FROM userData WHERE userID = '{userID}'")
+    glumbo = await c.fetchone()
+    if glumbo == None or glumbo[0] <=0:
+        return 0
+    else:
+        return glumbo[0]
+    
+async def get_bank_data(conn, username):
+    c = await conn.cursor()
+    await c.execute(f"SELECT bank FROM userData WHERE userID = '{username}'")
     glumbo = await c.fetchone()
     if glumbo == None:
         return "You don't have any glumbo!"
     else:
         return glumbo[0]
+
+
+async def dep(conn, userID, glumboToDeposit):
+    try:
+        c = await conn.cursor()
+
+        # Convert glumboToDeposit to an integer if it's a digit string
+        if isinstance(glumboToDeposit, str) and glumboToDeposit.isdigit():
+            glumboToDeposit = int(glumboToDeposit)
+
+        # If the user types "all", get all the glumbo in the cash
+        if isinstance(glumboToDeposit, str) and glumboToDeposit.lower() == "all":
+            glumboToDeposit = await get_cash_data(conn, userID)
+            if glumboToDeposit == "You don't have any glumbo!":
+                int(glumboToDeposit)
+                return  # If get_cash_data returned a string message
+
+        # Check if glumboToDeposit is an integer and greater than 0
+        if isinstance(glumboToDeposit, int) and glumboToDeposit > 0:
+            # Check if the user has enough glumbo in cash
+            glumboInCash = await get_cash_data(conn, userID)
+            if isinstance(glumboInCash, str):  # In case get_cash_data returned a string message
+                return glumboInCash
+
+            if glumboInCash < glumboToDeposit:
+                return "You don't have enough glumbo in your cash!"
+
+            # Transfer the specified amount of glumbo from cash to bank
+            sql = "UPDATE userData SET bank = bank + ?, cash = cash - ? WHERE userID = ?"
+            await c.execute(sql, (glumboToDeposit, glumboToDeposit, userID))
+            await conn.commit()
+
+            return
+        else:
+            return "You can't deposit 0 or less glumbo!"
+    except Exception as e:
+        print(e)  # Print is not an async function.
+        raise e    # It's better to raise exception so that caller can handle it properly.
+    finally:
+        await conn.close()
+
+
+        
+async def withd(conn, userID, glumboToWithdraw):
+    try:
+        c = await conn.cursor()
+
+        # If the user types "all", get all the glumbo in the bank
+        if isinstance(glumboToWithdraw, str) and glumboToWithdraw.lower() == "all":
+            glumboToWithdraw = await get_bank_data(conn, userID)
+        elif isinstance(glumboToWithdraw, str) and glumboToWithdraw.isdigit():
+            glumboToWithdraw = int(glumboToWithdraw)
+
+        if isinstance(glumboToWithdraw, int) and glumboToWithdraw > 0:
+            # Check if the user has enough Glumbos in their Bank account 
+            currentBankBalance = await get_bank_data(conn ,userID) 
+            if currentBankBalance < glumboToWithdraw:
+                return 'You do not have enough Glumbos to withdraw'
+
+            sql = 'UPDATE userData SET bank=bank-?, cash=cash+? WHERE userID=?'
+            await c.execute(sql,(glumboToWithdraw,glumboToWithdraw,userID))
+            await conn.commit()
+
+            return f"Successfully withdrawn <:glumbol:1003615679200645130> {glumboToWithdraw}!"
+        else:
+            return "You can't withdraw 0 or less Glumbo"
+    except Exception as e:
+        print(e)  # Print is not an async function.
+        raise e    # It's better to raise exception so that caller can handle it properly.
+    finally:
+        await conn.close()
+
+    
+
+    
+
+
+
 
     
