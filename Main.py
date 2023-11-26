@@ -9,6 +9,9 @@ from database import get_bank_data
 from database import remove_glumbo
 from database import dep
 from database import withd
+from database import create_business
+from database import create_table
+from database import buy_stocks
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
@@ -303,6 +306,35 @@ async def withdraw(ctx, glumboToWithdraw = None):
 
 @bot.command()
 @commands.cooldown(1, 10, commands.BucketType.user)
+async def shop(ctx):
+    try:
+        # Connect to the database
+        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        c = await conn.cursor()
+
+        # Query the shop table for all items
+        await c.execute("SELECT itemID, itemName, price, itemDescription FROM shop")
+        items = await c.fetchall()
+
+        # Close the connection
+        await conn.close()
+
+        # Create an embed
+        embed = discord.Embed(title="Shop", description="Here are the items available in the shop:", color=discord.Color.yellow())
+
+        # Add each item to the embed
+        for item in items:
+            embed.add_field(name=f"{item[1]} (ID: {item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[2]}, Description: {item[3]}", inline=False)
+
+        # Send the embed
+        await ctx.send(embed=embed)
+    except Exception as e:
+        await conn.close()
+        await print(e)
+    
+
+@bot.command()
+@commands.cooldown(1, 10, commands.BucketType.user)
 @commands.has_permissions(administrator=True)
 async def additem(ctx, itemName: str, itemDescription: str, price: int, message: str = None, roleID: int = None):
     try:           
@@ -371,84 +403,61 @@ async def use(ctx, itemName):
         
         if row is not None:
             role_id, message, itemID = row
-            if role_id:
-                role = ctx.guild.get_role(role_id)
-                if role:
-                    if role in ctx.author.roles:
-                        embed = discord.Embed(
-                            title="Shop", description="You already have that role!", color=discord.colour.Color.red()
-                        )
-                        await conn.close()
-                    else:
-                        await ctx.author.add_roles(role)
-                        c = await conn.cursor()
-                        sql = "DELETE FROM userItems WHERE userID = ? AND itemID = ?"
-                        await c.execute(sql, (ctx.author.id, itemID))
-                        await conn.commit()
-                        await conn.close()
 
+            # Check if the user has the item
+            sql = "SELECT * FROM userItems WHERE userID = ? AND itemID = ?"
+            await c.execute(sql, (ctx.author.id, itemID))
+            user_item = await c.fetchone()
+
+            if user_item is not None:
+                if role_id:
+                    role = ctx.guild.get_role(role_id)
+                    if role:
+                        if role in ctx.author.roles:
+                            embed = discord.Embed(
+                                title="Shop", description="You already have that role!", color=discord.colour.Color.red()
+                            )
+                        else:
+                            await ctx.author.add_roles(role)
+                            sql = "DELETE FROM userItems WHERE userID = ? AND itemID = ?"
+                            await c.execute(sql, (ctx.author.id, itemID))
+                            await conn.commit()
+
+                            embed = discord.Embed(
+                                title="Shop", description=f"You have been given the {role.name} role.", color=discord.colour.Color.yellow()
+                            )
+                        await ctx.send(embed=embed)
+                    else:
                         embed = discord.Embed(
-                            title="Shop", description=f"You have been given the {role.name} role.", color=discord.colour.Color.yellow()
-                        )
-                    await ctx.send(embed=embed)
+                                title="Shop", description="Role not found!", color=discord.colour.Color.red()
+                            )
+                        await ctx.send(embed=embed)
+                elif message:
+                    sql = "DELETE FROM userItems WHERE userID = ? AND itemID = ?"
+                    await c.execute(sql, (ctx.author.id, itemID))
+                    await conn.commit()
+                    await ctx.send(message)
                 else:
                     embed = discord.Embed(
-                            title="Shop", description="Role not found!", color=discord.colour.Color.red()
-                        )
-                    await conn.close()
+                        title="Shop", description="This item does not give any roles or messages!", color=discord.colour.Color.red()
+                    )
                     await ctx.send(embed=embed)
-            elif message:
-                c = await conn.cursor()
-                sql = "DELETE FROM userItems WHERE userID = ? AND itemID = ?"
-                await c.execute(sql, (ctx.author.id, itemID))
-                await conn.commit()
-                await conn.close()
-                await ctx.send(message)
             else:
                 embed = discord.Embed(
-                    title="Shop", description="This item does not give any roles or messages!", color=discord.colour.Color.red()
+                    title="Shop", description="You do not have this item.", color=discord.colour.Color.red()
                 )
-                await conn.close()
                 await ctx.send(embed=embed)
         else:
             embed = discord.Embed(
                 title="Shop", description="Item not found in the shop.", color=discord.colour.Color.red()
             )
-            await conn.close()
             await ctx.send(embed=embed)
 
+        await conn.close()
     except Exception as e:
         await conn.close()
         print(e)
 
-
-@bot.command()
-@commands.cooldown(1, 10, commands.BucketType.user)
-async def shop(ctx):
-    try:
-        # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
-        c = await conn.cursor()
-
-        # Query the shop table for all items
-        await c.execute("SELECT itemID, itemName, price, itemDescription FROM shop")
-        items = await c.fetchall()
-
-        # Close the connection
-        await conn.close()
-
-        # Create an embed
-        embed = discord.Embed(title="Shop", description="Here are the items available in the shop:", color=discord.Color.yellow())
-
-        # Add each item to the embed
-        for item in items:
-            embed.add_field(name=f"{item[1]} (ID: {item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[2]}, Description: {item[3]}", inline=False)
-
-        # Send the embed
-        await ctx.send(embed=embed)
-    except Exception as e:
-        await conn.close()
-        await print(e)
 
 @bot.command()
 @commands.cooldown(1, 10, commands.BucketType.user)
@@ -494,7 +503,7 @@ async def buy(ctx, itemName: str):
         # Close the connection
         await conn.close()
 
-@bot.command()
+@bot.command(aliases=['inv'])
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def inventory(ctx):
     userID = ctx.author.id
@@ -527,6 +536,119 @@ async def inventory(ctx):
         await ctx.send(embed=embed)
     # Close the connection
     await conn.close()
+
+
+@bot.command()
+@commands.has_role(998911733081067570)
+async def createbusiness(ctx, businessName, stockName, stockPrice):
+    try:
+        if len(stockName) == 4:
+            userID = ctx.author.id
+            conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+            cash = await get_cash_data(conn, userID)
+
+            if cash >= 100000:
+                data = await create_business(conn, userID, businessName, stockName, stockPrice)
+
+                if data == "User already has a business.":
+                    embed = discord.Embed(title="Business", description=f"{data}", color=discord.Color.yellow())
+                    await ctx.send(embed=embed)
+                    return
+                elif stockPrice > 0:                   
+                    await remove_glumbo(userID, 100000)
+                    embed = discord.Embed(title="Business", description=f"{data}", color=discord.Color.yellow())
+                    await ctx.send(embed=embed)
+                else:
+                    embed = discord.Embed(title="Business", description=f"Your stock price can't be 0 or less!", color=discord.Color.red())
+                    await ctx.send(embed=embed)
+            else:
+                embed = discord.Embed(title="Business", description=f"You can't don't have enough glumbo to create a business!", color=discord.Color.red())
+                await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(title="Business", description=f"Your stock name can't be less or greater than 4 characters!", color=discord.Color.red())
+            await ctx.send(embed=embed)
+    except Exception as e:
+        print(e)
+        
+@bot.command()
+@commands.cooldown(1, 10, commands.BucketType.user)
+async def stocks(ctx):
+    try:
+        # Connect to the database
+        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        c = await conn.cursor()
+
+        # Query the business table for all items
+        await c.execute("SELECT businessName, userID, stockName, stockPrice FROM business")
+        items = await c.fetchall()
+
+        # Close the connection
+        await conn.close()
+
+        # Create an embed
+        embed = discord.Embed(title="Stocks", description="Here are the items available in the stock market:", color=discord.Color.yellow())
+
+        # Add each item to the embed
+        for item in items:
+            user = await bot.fetch_user(item[1])
+            embed.add_field(name=f"{item[2]} (Company: {item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[3]}, Company owner: {user.mention}", inline=False)
+
+        # Send the embed
+        await ctx.send(embed=embed)
+    except Exception as e:
+        await conn.close()
+        await print(e)
+
+
+@bot.command()
+async def buystock(ctx, stockName):
+    try:
+       conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")       
+       userID = ctx.author.id
+       data = await buy_stocks(conn, userID, stockName)
+       embed = discord.Embed(title="Stocks", description=data, color=discord.Color.yellow())
+       await ctx.send(embed=embed)
+
+    except Exception as e:
+        print(e)
+    finally:
+        # Close the connection
+        await conn.close()
+
+
+@bot.command(aliases=['stockinv'])
+@commands.cooldown(1, 10, commands.BucketType.user)
+async def stockinventory(ctx):
+    userID = ctx.author.id
+
+    # Connect to the database
+    conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+    c = await conn.cursor()
+
+    # Query the userItems table for items owned by the user
+    await c.execute("""
+    SELECT stockName 
+    FROM userStocks  
+    WHERE userID = ?
+    """, (userID,))
+    stocks = await c.fetchall()
+
+    if stocks:
+        # If the user owns any items, send a message with the list of items
+        stock_list = ', '.join(item[0] for item in stocks)
+
+        embed = discord.Embed(
+            title="Inventory", description=f"You own the following stocks: {stock_list}", color=discord.colour.Color.yellow()
+        )
+
+        await ctx.send(embed=embed)
+    else:
+        # If the user does not own any items, send a message to inform them
+        embed = discord.Embed(title="Shop", description=f"You do not own any stocks!", color=discord.Color.red())
+        await ctx.send(embed=embed)
+    # Close the connection
+    await conn.close()
+
 
 async def reconnect_loop():
     while True:

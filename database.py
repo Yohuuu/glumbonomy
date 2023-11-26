@@ -20,13 +20,12 @@ async def create_table():
     try:
         conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
         c = await conn.cursor()
-        await c.execute("""CREATE TABLE userItems (
+        await c.execute("""CREATE TABLE userStocks (
                             userID BIGINT NOT NULL,
-                            itemID INTEGER NOT NULL,
+                            stockName TEXT NOT NULL,
                             FOREIGN KEY (userID) REFERENCES userData(userID),
-                            FOREIGN KEY (itemID) REFERENCES shop(itemID)
-                            );
-
+                            FOREIGN KEY (stockName) REFERENCES business(stockName)
+                        );
                         """)
         await conn.commit()
         await conn.close()
@@ -61,7 +60,7 @@ async def insert_glumbo(conn, username, glumboAmount):
     await conn.commit()
     await conn.close()
 
-async def remove_glumbo(conn, username, glumboAmount):
+async def remove_glumbo(username, glumboAmount):
     """
     Insert a new user or update the glumboAmount for an existing user in the userData table
     :param conn:
@@ -69,23 +68,28 @@ async def remove_glumbo(conn, username, glumboAmount):
     :param glumboAmount:
     :return: None
     """
-    cur = await conn.cursor()
-    
-    # Check if the username exists in the database
-    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE userID='{username}'")
-    user_exists = await cur.fetchone()
-    
-    if user_exists[0] > 0:
-        # If the username exists, update the glumboAmount
-        sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
-        await cur.execute(sql, (glumboAmount, str(username)))
-        await conn.commit()
-        await conn.close()
-        return glumboAmount
-    else:
-        await conn.close()
-        return "This user doesn't have any money to remove!" 
+    try:
+        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        cur = await conn.cursor()
         
+        # Check if the username exists in the database
+        await cur.execute(f"SELECT COUNT(*) FROM userData WHERE userID='{username}'")
+        user_exists = await cur.fetchone()
+        
+        if user_exists[0] > 0:
+            # If the username exists, update the glumboAmount
+            sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
+            await cur.execute(sql, (glumboAmount, str(username)))
+            await conn.commit()
+            await conn.close()
+            return glumboAmount
+        else:
+            await conn.close()
+            return "This user doesn't have any money to remove!" 
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
 
 async def get_cash_data(conn, userID):
     c = await conn.cursor()
@@ -145,7 +149,6 @@ async def dep(conn, userID, glumboToDeposit):
     finally:
         await conn.close()
 
-
         
 async def withd(conn, userID, glumboToWithdraw):
     try:
@@ -154,7 +157,7 @@ async def withd(conn, userID, glumboToWithdraw):
         # If the user types "all", get all the glumbo in the bank
         if isinstance(glumboToWithdraw, str) and glumboToWithdraw.lower() == "all":
             glumboToWithdraw = await get_bank_data(conn, userID)
-        elif isinstance(glumboToWithdraw, str) and glumboToWithdraw.isdigit():
+        else:
             glumboToWithdraw = int(glumboToWithdraw)
 
         if isinstance(glumboToWithdraw, int) and glumboToWithdraw > 0:
@@ -176,9 +179,57 @@ async def withd(conn, userID, glumboToWithdraw):
     finally:
         await conn.close()
 
-    
+async def create_business(conn, userID, businessName, stockName, stockPrice):
+    try:
+        c = await conn.cursor()
+        checkIfUserHasOtherBusinesses = "SELECT businessID FROM business WHERE userID = ?"
+        await c.execute(checkIfUserHasOtherBusinesses, (userID,))
+        result = await c.fetchone()
 
-    
+        if result is not None:
+            return "User already has a business."
+        
+        # Add your business creation code here
+        createBusiness = "INSERT INTO business(businessName, stockName, stockPrice, userID) VALUES(?, ?, ?, ?)"
+        await c.execute(createBusiness, (businessName, stockName, stockPrice, userID,))
+        await conn.commit()
+        return f"Business {businessName} was created!"
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
+
+async def buy_stocks(conn, userID, stockName):
+    try:
+        c = await conn.cursor()
+
+        # Check if the item exists in the shop
+        await c.execute("SELECT * FROM business WHERE stockName = ?", (stockName,))
+        item = await c.fetchone()
+
+        # Check if the user has enough money to buy the item
+
+        await c.execute("SELECT cash FROM userData WHERE userID = ?", (userID,))
+        cash = (await c.fetchone())[0]
+        
+        # Get item price
+
+        await c.execute("SELECT stockPrice FROM business WHERE stockName = ?", (stockName,))
+        price = (await c.fetchone())[0]
+
+        if cash < price:
+            return "You don't have enough cash to buy this stock!"
+        else:
+            if item is None:
+                return "This stock does not exist."
+            else:
+                # If the item exists, insert a new record into the userItems table
+                await c.execute("INSERT INTO userStocks (userID, stockName) VALUES (?, ?)", (userID, stockName))
+                await c.execute("UPDATE userData SET cash = cash - ? WHERE userID = ?", (price, userID,))
+                await conn.commit()
+                return f"You have successfully bought {stockName}!"
+    except Exception as e:
+        print(e)
 
 
 
