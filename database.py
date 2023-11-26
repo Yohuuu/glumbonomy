@@ -81,10 +81,8 @@ async def remove_glumbo(username, glumboAmount):
             sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
             await cur.execute(sql, (glumboAmount, str(username)))
             await conn.commit()
-            await conn.close()
             return glumboAmount
         else:
-            await conn.close()
             return "This user doesn't have any money to remove!" 
     except Exception as e:
         print(e)
@@ -95,8 +93,8 @@ async def get_cash_data(conn, userID):
     c = await conn.cursor()
     await c.execute(f"SELECT cash FROM userData WHERE userID = '{userID}'")
     glumbo = await c.fetchone()
-    if glumbo == None or glumbo[0] <=0:
-        return 0
+    if glumbo == None:
+        return "You don't have any glumbo!"
     else:
         return glumbo[0]
     
@@ -228,6 +226,36 @@ async def buy_stocks(conn, userID, stockName):
                 await c.execute("UPDATE userData SET cash = cash - ? WHERE userID = ?", (price, userID,))
                 await conn.commit()
                 return f"You have successfully bought {stockName}!"
+    except Exception as e:
+        print(e)
+
+async def sell_stocks(conn, userID, stockName):
+    try:
+        c = await conn.cursor()
+
+        # Check if the item exists in the shop
+        await c.execute("SELECT * FROM business WHERE stockName = ?", (stockName,))
+        item = await c.fetchone()
+
+        # Check if the user owns the item
+        sql = "SELECT * FROM userStocks WHERE userID = ? AND stockName = ?"
+        await c.execute(sql, (userID, stockName))
+        user_item = await c.fetchone()
+
+        if user_item is not None:
+            await c.execute("SELECT stockPrice FROM business WHERE stockName = ?", (stockName,))
+            price = (await c.fetchone())[0]
+
+            if item is None:
+                return "This stock does not exist."
+            else:
+                # If the item exists, insert a new record into the userItems table
+                await c.execute("DELETE FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName,))
+                await c.execute("UPDATE userData SET cash = cash + ? WHERE userID = ?", (price, userID,))
+                await conn.commit()
+                return f"You have successfully sold {stockName} for {price}!"
+        else:
+            return "You don't own this stock!"
     except Exception as e:
         print(e)
 
