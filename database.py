@@ -94,18 +94,19 @@ async def get_cash_data(conn, userID):
     await c.execute(f"SELECT cash FROM userData WHERE userID = '{userID}'")
     glumbo = await c.fetchone()
     if glumbo == None:
-        return "You don't have any glumbo!"
+        return 0
     else:
-        return glumbo[0]
+        return int(glumbo[0])
+
     
 async def get_bank_data(conn, username):
     c = await conn.cursor()
     await c.execute(f"SELECT bank FROM userData WHERE userID = '{username}'")
     glumbo = await c.fetchone()
     if glumbo == None:
-        return "You don't have any glumbo!"
+        return 0
     else:
-        return glumbo[0]
+        return int(glumbo[0])
 
 
 async def dep(conn, userID, glumboToDeposit):
@@ -119,17 +120,11 @@ async def dep(conn, userID, glumboToDeposit):
         # If the user types "all", get all the glumbo in the cash
         if isinstance(glumboToDeposit, str) and glumboToDeposit.lower() == "all":
             glumboToDeposit = await get_cash_data(conn, userID)
-            if glumboToDeposit == "You don't have any glumbo!":
-                int(glumboToDeposit)
-                return  # If get_cash_data returned a string message
 
         # Check if glumboToDeposit is an integer and greater than 0
         if isinstance(glumboToDeposit, int) and glumboToDeposit > 0:
             # Check if the user has enough glumbo in cash
             glumboInCash = await get_cash_data(conn, userID)
-            if isinstance(glumboInCash, str):  # In case get_cash_data returned a string message
-                return glumboInCash
-
             if glumboInCash < glumboToDeposit:
                 return "You don't have enough glumbo in your cash!"
 
@@ -138,7 +133,7 @@ async def dep(conn, userID, glumboToDeposit):
             await c.execute(sql, (glumboToDeposit, glumboToDeposit, userID))
             await conn.commit()
 
-            return
+            return f"You have successfully deposited <:glumbo:1003615679200645130>{glumboToDeposit} glumbo!"
         else:
             return "You can't deposit 0 or less glumbo!"
     except Exception as e:
@@ -146,7 +141,6 @@ async def dep(conn, userID, glumboToDeposit):
         raise e    # It's better to raise exception so that caller can handle it properly.
     finally:
         await conn.close()
-
         
 async def withd(conn, userID, glumboToWithdraw):
     try:
@@ -168,7 +162,7 @@ async def withd(conn, userID, glumboToWithdraw):
             await c.execute(sql,(glumboToWithdraw,glumboToWithdraw,userID))
             await conn.commit()
 
-            return f"Successfully withdrawn <:glumbol:1003615679200645130> {glumboToWithdraw}!"
+            return f"Successfully withdrawn <:glumbol:1003615679200645130>{glumboToWithdraw}!"
         else:
             return "You can't withdraw 0 or less Glumbo"
     except Exception as e:

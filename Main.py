@@ -42,6 +42,11 @@ async def glumbo(ctx):
     await ctx.send("Glumbo!")
 
 @bot.command()
+@commands.cooldown(1, 10, commands.BucketType.user)
+async def scrungler(ctx):
+    await ctx.send("<:scrungler:1082698194502287400>")
+
+@bot.command()
 @commands.cooldown(1, 30, commands.BucketType.user)
 async def work(ctx):
     glumboAmount = random.randrange(0, 601)
@@ -271,14 +276,10 @@ async def deposit(ctx, glumboToDeposit = None):
     try:
         conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
         userID = ctx.author.id
-        await dep(conn, userID, glumboToDeposit)
+        glumboToDeposit = await dep(conn, userID, glumboToDeposit)
 
-        if glumboToDeposit == "all":
-            embedd = discord.Embed(title="Deposit", description="You have successfully deposited all of your glumbo!", color=discord.Color.yellow())
-            await ctx.send(embed=embedd)
-        else:
-            embedd = discord.Embed(title="Deposit", description=f"You have successfully deposited <:glumbo:1003615679200645130>{glumboToDeposit}!", color=discord.Color.yellow())
-            await ctx.send(embed=embedd)
+        embed = discord.Embed(title="Deposit", description=glumboToDeposit, color=discord.Color.yellow())
+        await ctx.send(embed=embed)
 
     except Exception as e:
         print(e)
@@ -289,14 +290,10 @@ async def withdraw(ctx, glumboToWithdraw = None):
     try:
         conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
         userID = ctx.author.id
-        await withd(conn, userID, glumboToWithdraw)
+        glumboToWithdraw = await withd(conn, userID, glumboToWithdraw)
 
-        if glumboToWithdraw == "all":
-            embed = discord.Embed(title="Withdraw", description="You have successfully withdrawn all of your glumbo!", color=discord.Color.yellow())
-            await ctx.send(embed=embed)
-        else:
-            embed = discord.Embed(title="Withdraw", description=f"You have successfully withdrawn <:glumbo:1003615679200645130>{glumboToWithdraw}!", color=discord.Color.yellow())
-            await ctx.send(embed=embed)
+        embed = discord.Embed(title="Withdraw", description=glumboToWithdraw, color=discord.Color.yellow())
+        await ctx.send(embed=embed)
 
     except Exception as e:
         await conn.close()
@@ -538,6 +535,7 @@ async def inventory(ctx):
 
 @bot.command()
 @commands.has_role(998911733081067570)
+@commands.cooldown(1, 15, commands.BucketType.user)
 async def createbusiness(ctx, businessName, stockName, stockPrice):
     try:
         if len(stockName) == 4:
@@ -601,6 +599,7 @@ async def stocks(ctx):
 
 
 @bot.command()
+@commands.cooldown(1, 15, commands.BucketType.user)
 async def buystock(ctx, stockName):
     try:
        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")       
@@ -616,6 +615,7 @@ async def buystock(ctx, stockName):
         await conn.close()
 
 @bot.command()
+@commands.cooldown(1, 15, commands.BucketType.user)
 async def sellstock(ctx, stockName):
     try:
        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")       
