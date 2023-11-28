@@ -20,8 +20,8 @@ async def changeStockPrice():
                 random_percentage = random.uniform(-0.1, 0.1)  # A random percentage between -10% and +10%
                 random_fluctuation = stock_price * random_percentage
             
-                buy_effect = stocks_bought / stock_price
-                sell_effect = stocks_sold / stock_price
+                buy_effect = stocks_bought / stock_price if stock_price != 0 else 0
+                sell_effect = stocks_sold / stock_price if stock_price != 0 else 0
 
                 new_price = round(max(1, stock_price + random_fluctuation + sell_effect - buy_effect))
 

@@ -126,10 +126,10 @@ async def crime(ctx):
             title="Crime", description=job, colour=status_color
         )
         await ctx.send(embed=embed)
-        await conn.close()
     except Exception as e:
-        await conn.close()
         await print(e)
+    finally:
+        await conn.close()
 
 
 @bot.command()
@@ -139,7 +139,6 @@ async def slut(ctx):
         glumboAmount = random.randrange(0, 1001)
         status = random.choice([True, False])
     except Exception as e:
-        await conn.close()
         await print(e)
 
     userID = ctx.author.id
@@ -154,7 +153,6 @@ async def slut(ctx):
         else:
             await remove_glumbo(userID, glumboAmount)
     except Exception as e:
-        await conn.close()
         await print(e)
     
     try:
@@ -169,7 +167,6 @@ async def slut(ctx):
         await ctx.send(embed=embed)
         await conn.close()
     except Exception as e:
-        await conn.close()
         await print(e)
 
 
@@ -562,7 +559,12 @@ async def createbusiness(ctx, businessName, stockName, stockPrice):
             conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
             cash = await get_cash_data(conn, userID)
 
-            if cash >= 100000:
+            if int(stockPrice) > 10001:
+                embed = discord.Embed(title="Business", description=f"Your stock price can't be bigger than 10000 glumbo!", color=discord.Color.yellow())
+                await ctx.send(embed=embed)
+                return
+
+            if int(cash) >= 100000:
                 data = await create_business(conn, userID, businessName, stockName, stockPrice)
 
                 if data == "User already has a business.":
