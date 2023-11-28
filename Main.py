@@ -2,6 +2,7 @@ import discord
 import random
 import aiosqlite
 import asyncio
+import subprocess
 from database import insert_glumbo
 from database import create_connection
 from database import get_cash_data
@@ -27,6 +28,12 @@ bot = commands.Bot(command_prefix='$', intents=intents)
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
+backup = "C:/Users/User/Desktop/python/Glumbonomy/backupdb.py"
+stocks = "C:/Users/User/Desktop/python/Glumbonomy/stocks.py"
+
+# Run the files
+subprocess.Popen(["python", backup])
+subprocess.Popen(["python", stocks])
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -34,6 +41,18 @@ async def on_command_error(ctx, error):
         embed = discord.Embed(
         title="Cooldown!", description=f'This command is on cooldown, you can use it in {round(error.retry_after, 2)} seconds!', colour=discord.Color.yellow()
     )
+        await ctx.send(embed=embed)
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        embed = discord.Embed(title="Error!", description="You have not provided enough arguments. Please check the command usage.", color=discord.Color.red())
+        await ctx.send(embed=embed)
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        embed = discord.Embed(title="Error!", description="This command is not found!", color=discord.Color.red())
         await ctx.send(embed=embed)
 
 @bot.tree.command(name = "glumbo", description="Says Glumbo! Just a test command to see if the bot works, nothing more", guild=discord.Object(id=998886208916688907))
@@ -215,7 +234,7 @@ async def rob(ctx, userToRemoveMoneyFrom: discord.Member):
     try:
         amountOfMoneyStolen = await get_cash_data(conn, userToRemoveMoneyFrom.id) * 0.5
         if status < 0.5:
-            if amountOfMoneyStolen == 0.0:
+            if amountOfMoneyStolen <= 0.0:
                 embed = discord.Embed(
                     title="Rob", description=f"{userToRemoveMoneyFrom.mention} does not have any glumbo to rob! Epic fail!", colour=discord.Color.yellow()
                 )
@@ -577,7 +596,7 @@ async def stocks(ctx):
         c = await conn.cursor()
 
         # Query the business table for all items
-        await c.execute("SELECT businessName, userID, stockName, stockPrice FROM business")
+        await c.execute("SELECT businessName, userID, stockName, stockPrice, stocksBought, stocksSold FROM business")
         items = await c.fetchall()
 
         # Close the connection
@@ -589,7 +608,7 @@ async def stocks(ctx):
         # Add each item to the embed
         for item in items:
             user = await bot.fetch_user(item[1])
-            embed.add_field(name=f"{item[2]} (Company: {item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[3]}, Company owner: {user.mention}", inline=False)
+            embed.add_field(name=f"{item[2]} (Company: {item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[3]}, Company owner: {user.mention}, Stocks bought: {item[4]}, Stocks sold: {item[5]}", inline=False)
 
         # Send the embed
         await ctx.send(embed=embed)

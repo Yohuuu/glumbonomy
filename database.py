@@ -133,7 +133,7 @@ async def dep(conn, userID, glumboToDeposit):
             await c.execute(sql, (glumboToDeposit, glumboToDeposit, userID))
             await conn.commit()
 
-            return f"You have successfully deposited <:glumbo:1003615679200645130>{glumboToDeposit} glumbo!"
+            return f"You have successfully deposited <:glumbo:1003615679200645130>{glumboToDeposit}!"
         else:
             return "You can't deposit 0 or less glumbo!"
     except Exception as e:
@@ -217,6 +217,7 @@ async def buy_stocks(conn, userID, stockName):
             else:
                 # If the item exists, insert a new record into the userItems table
                 await c.execute("INSERT INTO userStocks (userID, stockName) VALUES (?, ?)", (userID, stockName))
+                await c.execute("UPDATE business SET stocksBought = stocksBought + 1  WHERE stockName = ?", (stockName,))
                 await c.execute("UPDATE userData SET cash = cash - ? WHERE userID = ?", (price, userID,))
                 await conn.commit()
                 return f"You have successfully bought {stockName}!"
@@ -245,6 +246,7 @@ async def sell_stocks(conn, userID, stockName):
             else:
                 # If the item exists, insert a new record into the userItems table
                 await c.execute("DELETE FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName,))
+                await c.execute("UPDATE business SET stocksSold = stocksSold + 1  WHERE stockName = ?", (stockName,))
                 await c.execute("UPDATE userData SET cash = cash + ? WHERE userID = ?", (price, userID,))
                 await conn.commit()
                 return f"You have successfully sold {stockName} for {price}!"
