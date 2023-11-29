@@ -598,7 +598,7 @@ async def stocks(ctx):
         c = await conn.cursor()
 
         # Query the business table for all items
-        await c.execute("SELECT businessName, userID, stockName, stockPrice, stocksBought, stocksSold FROM business")
+        await c.execute("SELECT businessName, userID, stockName, stockPrice, stockPercentage FROM business")
         items = await c.fetchall()
 
         # Close the connection
@@ -610,7 +610,12 @@ async def stocks(ctx):
         # Add each item to the embed
         for item in items:
             user = await bot.fetch_user(item[1])
-            embed.add_field(name=f"{item[2]} (Company: {item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[3]}, Company owner: {user.mention}, Stocks bought: {item[4]}, Stocks sold: {item[5]}", inline=False)
+            stockChange = item[6]
+
+            if stockChange > 0.0:
+                stockChange = f"+{stockChange}"
+
+            embed.add_field(name=f"{item[2]} Company: ({item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[3]}, Company owner: {user.mention}, Percentage change: {stockChange}%", inline=False)
 
         # Send the embed
         await ctx.send(embed=embed)
@@ -663,7 +668,6 @@ async def sellstock(ctx, stockName, stockAmount):
         # Close the connection
         if conn and not conn.closed:
             await conn.close()
-
 
 
 @bot.command(aliases=['stockinv'])
