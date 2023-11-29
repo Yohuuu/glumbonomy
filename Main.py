@@ -621,11 +621,11 @@ async def stocks(ctx):
 
 @bot.command()
 @commands.cooldown(1, 15, commands.BucketType.user)
-async def buystock(ctx, stockName):
-    try:
+async def buystock(ctx, stockName, stockAmount):
+    try:      
        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")       
        userID = ctx.author.id
-       data = await buy_stocks(conn, userID, stockName)
+       data = await buy_stocks(conn, userID, stockName, int(stockAmount))
        embed = discord.Embed(title="Stocks", description=data, color=discord.Color.yellow())
        await ctx.send(embed=embed)
 
@@ -637,19 +637,33 @@ async def buystock(ctx, stockName):
 
 @bot.command()
 @commands.cooldown(1, 15, commands.BucketType.user)
-async def sellstock(ctx, stockName):
+async def sellstock(ctx, stockName, stockAmount):
     try:
-       conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")       
-       userID = ctx.author.id
-       data = await sell_stocks(conn, userID, stockName)
-       embed = discord.Embed(title="Stocks", description=data, color=discord.Color.yellow())
-       await ctx.send(embed=embed)
+        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        userID = ctx.author.id
+
+        if stockAmount.lower() == 'all':
+            # Perform the sell operation for all stocks
+            data = await sell_stocks(conn, userID, stockName, stockAmount)
+        elif stockAmount.isdigit() and int(stockAmount) > 0:
+            # Perform the sell operation for the specified quantity
+            data = await sell_stocks(conn, userID, stockName, int(stockAmount))
+        else:
+            await ctx.send("Please provide a valid quantity of stocks to sell.")
+            return
+
+        embed = discord.Embed(title="Stocks", description=data, color=discord.Color.yellow())
+        await ctx.send(embed=embed)
 
     except Exception as e:
         print(e)
+        await ctx.send("An error occurred while processing your request.")
+
     finally:
         # Close the connection
-        await conn.close()
+        if conn and not conn.closed:
+            await conn.close()
+
 
 
 @bot.command(aliases=['stockinv'])

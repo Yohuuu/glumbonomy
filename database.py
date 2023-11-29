@@ -191,51 +191,78 @@ async def create_business(conn, userID, businessName, stockName, stockPrice):
     finally:
         await conn.close()
 
-async def buy_stocks(conn, userID, stockName):
+async def buy_stocks(conn, userID, stockName, stockAmount):
     try:
+        if stockAmount is None:
+            return "You must specify the amount of stock to buy!"
         c = await conn.cursor()
 
         # Check if the item exists in the shop
         await c.execute("SELECT * FROM business WHERE stockName = ?", (stockName,))
         item = await c.fetchone()
 
-        # Check if the user has enough money to buy the item
+        if item is None:
+                return "This stock does not exist."
 
+        # Check if the user has enough money to buy the item
         await c.execute("SELECT cash FROM userData WHERE userID = ?", (userID,))
         cash = (await c.fetchone())[0]
         
         # Get item price
-
         await c.execute("SELECT stockPrice FROM business WHERE stockName = ?", (stockName,))
         price = (await c.fetchone())[0]
 
-        if cash < price:
+        total_price = price * stockAmount
+
+        if cash < total_price:
             return "You don't have enough cash to buy this stock!"
-        else:
-            if item is None:
-                return "This stock does not exist."
-            else:
-                # If the item exists, insert a new record into the userItems table
-                await c.execute("INSERT INTO userStocks (userID, stockName) VALUES (?, ?)", (userID, stockName))
-                await c.execute("UPDATE business SET stocksBought = stocksBought + 1  WHERE stockName = ?", (stockName,))
-                await c.execute("UPDATE userData SET cash = cash - ? WHERE userID = ?", (price, userID,))
+        else:            
+                # Check if the user already owns this stock
+                await c.execute("SELECT * FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName))
+                user_stock = await c.fetchone()
+
+                if user_stock is None:
+                    # If the user doesn't own this stock, insert a new record into the userStocks table
+                    await c.execute("INSERT INTO userStocks (userID, stockName, quantity) VALUES (?, ?, ?)", (userID, stockName, stockAmount))
+                else:
+                    # If the user already owns this stock, increment the quantity
+                    await c.execute("UPDATE userStocks SET quantity = quantity + ? WHERE userID = ? AND stockName = ?", (stockAmount, userID, stockName))
+
+                await c.execute("UPDATE business SET stocksBought = stocksBought + ? WHERE stockName = ?", (stockAmount, stockName,))
+                
+                stocksSold = "SELECT stocksSold FROM business WHERE stockName = ?"
+                await c.execute(stocksSold, (stockName,))
+                stocksSold = (await c.fetchone())[0]
+
+                if stocksSold - stockAmount <=0:
+                    stocksSold = 0
+                else:
+                    stocksSold = stocksSold - stockAmount
+
+                await c.execute("UPDATE business SET stocksSold = ? WHERE stockName = ?", (stocksSold, stockName,))
+                await c.execute("UPDATE userData SET cash = cash - ? WHERE userID = ?", (total_price, userID,))
                 await conn.commit()
-                return f"You have successfully bought {stockName}!"
+                return f"You have successfully bought {stockAmount} {stockName} stocks!"
     except Exception as e:
         print(e)
 
-async def sell_stocks(conn, userID, stockName):
+async def sell_stocks(conn, userID, stockName, stockAmount):
     try:
         c = await conn.cursor()
 
         # Check if the item exists in the shop
         await c.execute("SELECT * FROM business WHERE stockName = ?", (stockName,))
         item = await c.fetchone()
+        print(item)
 
         # Check if the user owns the item
         sql = "SELECT * FROM userStocks WHERE userID = ? AND stockName = ?"
         await c.execute(sql, (userID, stockName))
         user_item = await c.fetchone()
+        print(user_item)
+ 
+        if user_item is None or 0:
+            return "You don't own this stock!"
 
         if user_item is not None:
             await c.execute("SELECT stockPrice FROM business WHERE stockName = ?", (stockName,))
@@ -244,16 +271,40 @@ async def sell_stocks(conn, userID, stockName):
             if item is None:
                 return "This stock does not exist."
             else:
-                # If the item exists, insert a new record into the userItems table
-                await c.execute("DELETE FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName,))
-                await c.execute("UPDATE business SET stocksSold = stocksSold + 1  WHERE stockName = ?", (stockName,))
-                await c.execute("UPDATE userData SET cash = cash + ? WHERE userID = ?", (price, userID,))
+                # If the user wants to sell all their stocks
+                if stockAmount == 'all':
+                    stockAmount = int(user_item[2])  # Convert to int here
+                elif stockAmount.isdigit():
+                    stockAmount = int(stockAmount)  # Convert stockAmount to an integer
+                else:
+                    return "Invalid input. Please enter 'all' or a specific number."
+
+                if stockAmount > user_item[2]:
+                    return "You don't have enough stocks to sell!"
+                
+
+                # If the user sells all their stocks, delete the record from the userStocks table
+                if stockAmount == user_item[2]:
+                    await c.execute("DELETE FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName))
+                else:
+                    # If the user sells some of their stocks, update the record in the userStocks table
+                    await c.execute("UPDATE userStocks SET quantity = quantity - ? WHERE userID = ? AND stockName = ?", (stockAmount, userID, stockName))
+                
+                # Calculate the new number of sold stocks
+                
+                await c.execute("UPDATE business SET stocksSold = stocksSold + ? WHERE stockName = ?", (stockAmount, stockName,))
+                await c.execute("UPDATE userData SET cash = cash + ? WHERE userID = ?", (price * stockAmount, userID,))
                 await conn.commit()
-                return f"You have successfully sold {stockName} for {price}!"
+                return f"You have successfully sold {stockAmount} of {stockName} for {price * stockAmount}!"
         else:
             return "You don't own this stock!"
     except Exception as e:
         print(e)
+
+
+
+
+
 
 
 
