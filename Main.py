@@ -677,7 +677,7 @@ async def stockinventory(ctx):
 
     # Query the userItems table for items owned by the user
     await c.execute("""
-    SELECT stockName 
+    SELECT stockName, quantity
     FROM userStocks  
     WHERE userID = ?
     """, (userID,))
@@ -685,7 +685,7 @@ async def stockinventory(ctx):
 
     if stocks:
         # If the user owns any items, send a message with the list of items
-        stock_list = ', '.join(item[0] for item in stocks)
+        stock_list = ', '.join(f"{item[0]} ({item[1]})" for item in stocks)
 
         embed = discord.Embed(
             title="Inventory", description=f"You own the following stocks: {stock_list}", color=discord.colour.Color.yellow()

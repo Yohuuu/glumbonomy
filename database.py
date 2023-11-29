@@ -253,14 +253,14 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
         # Check if the item exists in the shop
         await c.execute("SELECT * FROM business WHERE stockName = ?", (stockName,))
         item = await c.fetchone()
-        print(item)
+        if item is None:
+                return "This stock does not exist."
 
         # Check if the user owns the item
         sql = "SELECT * FROM userStocks WHERE userID = ? AND stockName = ?"
         await c.execute(sql, (userID, stockName))
         user_item = await c.fetchone()
-        print(user_item)
- 
+
         if user_item is None or 0:
             return "You don't own this stock!"
 
@@ -268,29 +268,23 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
             await c.execute("SELECT stockPrice FROM business WHERE stockName = ?", (stockName,))
             price = (await c.fetchone())[0]
 
-            if item is None:
-                return "This stock does not exist."
+            # If the user wants to sell all their stocks
+            if stockAmount == 'all':
+                stockAmount = int(user_item[2])  # Convert to int here
             else:
-                # If the user wants to sell all their stocks
-                if stockAmount == 'all':
-                    stockAmount = int(user_item[2])  # Convert to int here
-                elif stockAmount.isdigit():
-                    stockAmount = int(stockAmount)  # Convert stockAmount to an integer
-                else:
-                    return "Invalid input. Please enter 'all' or a specific number."
-
-                if stockAmount > user_item[2]:
-                    return "You don't have enough stocks to sell!"
+                stockAmount = int(stockAmount)  # Convert stockAmount to an integer
+            if stockAmount > user_item[2]:
+                return "You don't have enough stocks to sell!"
                 
 
-                # If the user sells all their stocks, delete the record from the userStocks table
-                if stockAmount == user_item[2]:
-                    await c.execute("DELETE FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName))
-                else:
-                    # If the user sells some of their stocks, update the record in the userStocks table
-                    await c.execute("UPDATE userStocks SET quantity = quantity - ? WHERE userID = ? AND stockName = ?", (stockAmount, userID, stockName))
+            # If the user sells all their stocks, delete the record from the userStocks table
+            if stockAmount == user_item[2]:
+                await c.execute("DELETE FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName))
+            else:
+                # If the user sells some of their stocks, update the record in the userStocks table
+                await c.execute("UPDATE userStocks SET quantity = quantity - ? WHERE userID = ? AND stockName = ?", (stockAmount, userID, stockName))
                 
-                # Calculate the new number of sold stocks
+                #Calculate the new number of sold stocks
                 
                 await c.execute("UPDATE business SET stocksSold = stocksSold + ? WHERE stockName = ?", (stockAmount, stockName,))
                 await c.execute("UPDATE userData SET cash = cash + ? WHERE userID = ?", (price * stockAmount, userID,))
