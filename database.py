@@ -34,31 +34,30 @@ async def create_table():
         print(e)
 
 
-async def insert_glumbo(conn, username, glumboAmount):
-    """
-    Insert a new user or update the glumboAmount for an existing user in the userData table
-    :param conn:
-    :param username:
-    :param glumboAmount:
-    :return: None
-    """
-    cur = await conn.cursor()
-    
-    # Check if the username exists in the database
-    await cur.execute(f"SELECT COUNT(*) FROM userData WHERE userID=?", (username,))
-    user_exists = await cur.fetchone()
-    
-    if user_exists[0] > 0:
-        # If the username exists, update the glumboAmount
-        sql = 'UPDATE userData SET cash = cash + ? WHERE userID = ?'
-        await cur.execute(sql, (glumboAmount, username))
-    else:
-        # If the username does not exist, insert a new user
-        sql = 'INSERT INTO userData(userID, cash) VALUES(?, ?)'
-        await cur.execute(sql, (username, glumboAmount))
-    
-    await conn.commit()
-    await conn.close()
+async def insert_glumbo(username, glumboAmount):
+    try:
+        conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
+
+        cur = await conn.cursor()
+        
+        # Check if the username exists in the database
+        await cur.execute(f"SELECT COUNT(*) FROM userData WHERE userID=?", (username,))
+        user_exists = await cur.fetchone()
+        
+        if user_exists[0] > 0:
+            # If the username exists, update the glumboAmount
+            sql = 'UPDATE userData SET cash = cash + ? WHERE userID = ?'
+            await cur.execute(sql, (glumboAmount, username))
+        else:
+            # If the username does not exist, insert a new user
+            sql = 'INSERT INTO userData(userID, cash) VALUES(?, ?)'
+            await cur.execute(sql, (username, glumboAmount))
+        
+        await conn.commit()
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
 
 async def remove_glumbo(username, glumboAmount):
     """
@@ -77,17 +76,25 @@ async def remove_glumbo(username, glumboAmount):
         user_exists = await cur.fetchone()
         
         if user_exists[0] > 0:
-            # If the username exists, update the glumboAmount
-            sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
-            await cur.execute(sql, (glumboAmount, str(username)))
-            await conn.commit()
-            return glumboAmount
+            # If the username exists, check if they have enough glumbo
+            await cur.execute(f"SELECT cash FROM userData WHERE userID='{username}'")
+            user_cash = await cur.fetchone()
+            
+            if user_cash[0] >= int(glumboAmount):
+                # If the user has enough glumbo, update the glumboAmount
+                sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
+                await cur.execute(sql, (int(glumboAmount), username))
+                await conn.commit()
+                return glumboAmount
+            else:
+                return "This user doesn't have enough glumbo to remove!"
         else:
-            return "This user doesn't have any money to remove!" 
+            return "This user doesn't exist in the database!" 
     except Exception as e:
         print(e)
     finally:
         await conn.close()
+
 
 async def get_cash_data(conn, userID):
     c = await conn.cursor()
@@ -245,6 +252,8 @@ async def buy_stocks(conn, userID, stockName, stockAmount):
                 return f"You have successfully bought {stockAmount} {stockName} stocks!"
     except Exception as e:
         print(e)
+    finally:
+        await conn.close()
 
 async def sell_stocks(conn, userID, stockName, stockAmount):
     try:
@@ -270,7 +279,7 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
 
             # If the user wants to sell all their stocks
             if stockAmount == 'all':
-                stockAmount = int(user_item[2])  # Convert to int here
+                stockAmount = user_item[2]  # Convert to int here
             else:
                 stockAmount = int(stockAmount)  # Convert stockAmount to an integer
             if stockAmount > user_item[2]:
@@ -280,6 +289,10 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
             # If the user sells all their stocks, delete the record from the userStocks table
             if stockAmount == user_item[2]:
                 await c.execute("DELETE FROM userStocks WHERE userID = ? AND stockName = ?", (userID, stockName))
+                await c.execute("UPDATE business SET stocksSold = stocksSold + ? WHERE stockName = ?", (stockAmount, stockName,))
+                await c.execute("UPDATE userData SET cash = cash + ? WHERE userID = ?", (price * stockAmount, userID,))
+                await conn.commit()
+                return f"You have successfully sold {stockAmount} of {stockName} for {price * stockAmount}!"
             else:
                 # If the user sells some of their stocks, update the record in the userStocks table
                 await c.execute("UPDATE userStocks SET quantity = quantity - ? WHERE userID = ? AND stockName = ?", (stockAmount, userID, stockName))
@@ -294,6 +307,8 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
             return "You don't own this stock!"
     except Exception as e:
         print(e)
+    finally:
+        await conn.close()
 
 
 
