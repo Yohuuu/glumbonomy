@@ -1,4 +1,5 @@
 import aiosqlite
+import discord
 from aiosqlite import Error
 
 async def create_connection(db_file):
@@ -18,7 +19,7 @@ async def create_connection(db_file):
 
 async def create_table():
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
         c = await conn.cursor()
         await c.execute("""CREATE TABLE userStocks (
                             userID BIGINT NOT NULL,
@@ -36,7 +37,7 @@ async def create_table():
 
 async def insert_glumbo(username, glumboAmount):
     try:
-        conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await create_connection("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
 
         cur = await conn.cursor()
         
@@ -68,7 +69,7 @@ async def remove_glumbo(username, glumboAmount):
     :return: None
     """
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
         cur = await conn.cursor()
         
         # Check if the username exists in the database
@@ -80,14 +81,10 @@ async def remove_glumbo(username, glumboAmount):
             await cur.execute(f"SELECT cash FROM userData WHERE userID='{username}'")
             user_cash = await cur.fetchone()
             
-            if user_cash[0] >= int(glumboAmount):
-                # If the user has enough glumbo, update the glumboAmount
-                sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
-                await cur.execute(sql, (int(glumboAmount), username))
-                await conn.commit()
-                return glumboAmount
-            else:
-                return "This user doesn't have enough glumbo to remove!"
+            # If the user has enough glumbo, update the glumboAmount
+            sql = "UPDATE userData SET cash = cash - ? WHERE userID = ?"
+            await cur.execute(sql, (int(glumboAmount), username))
+            await conn.commit()
         else:
             return "This user doesn't exist in the database!" 
     except Exception as e:
@@ -125,7 +122,7 @@ async def dep(conn, userID, glumboToDeposit):
             glumboToDeposit = int(glumboToDeposit)
 
         # If the user types "all", get all the glumbo in the cash
-        if isinstance(glumboToDeposit, str) and glumboToDeposit.lower() == "all":
+        if glumboToDeposit == None:
             glumboToDeposit = await get_cash_data(conn, userID)
 
         # Check if glumboToDeposit is an integer and greater than 0
@@ -154,7 +151,7 @@ async def withd(conn, userID, glumboToWithdraw):
         c = await conn.cursor()
 
         # If the user types "all", get all the glumbo in the bank
-        if isinstance(glumboToWithdraw, str) and glumboToWithdraw.lower() == "all":
+        if glumboToWithdraw == None:
             glumboToWithdraw = await get_bank_data(conn, userID)
         else:
             glumboToWithdraw = int(glumboToWithdraw)
@@ -309,13 +306,3 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
         print(e)
     finally:
         await conn.close()
-
-
-
-
-
-
-
-
-
-    

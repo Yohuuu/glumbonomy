@@ -5,7 +5,7 @@ import asyncio
 async def changeStockPrice():
     try:
         while True:  # This will keep the function running indefinitely
-            conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+            conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
             c = await conn.cursor()
 
             # Fetch all stock names, stocks sold and bought
@@ -23,16 +23,16 @@ async def changeStockPrice():
 
                 # Calculate new price based on stocks sold, bought and total quantity
                 if total_quantity < 10:  # not a lot of stocks bought
-                    random_percentage = random.uniform(-0.03, 0.03)  # A random percentage between -3% and +3%
+                    random_percentage = random.uniform(-0.05, 0.05)  # A random percentage between -5% and +5%
                 elif stocks_bought > stocks_sold:  # demand is high
                     random_percentage = random.uniform(0.01, 0.1)  # A random percentage between 0% and +3%
                 else:  # supply is high
-                    random_percentage = random.uniform(-0.1, 0)  # A random percentage between -3% and 0%
+                    random_percentage = random.uniform(-0.05, 0)  # A random percentage between -5% and 0%
                 
                 random_fluctuation = random.uniform(-30, 30)  # A random value between -3 and +3 glumbo
             
                 buy_effect = min(stocks_bought * random_percentage, stock_price * 0.1)
-                sell_effect = min(stocks_sold / random_percentage if random_percentage != 0 else 0, stock_price * 0.1)
+                sell_effect = min(stocks_sold / random_percentage if random_percentage != 0 else 0, stock_price * 0.05)
                 quantity_effect = min(total_quantity * random_percentage, stock_price * 0.1)
 
                 new_price = round(max(1, stock_price + random_fluctuation - sell_effect + buy_effect + quantity_effect))
