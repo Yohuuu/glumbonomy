@@ -2,6 +2,8 @@ import aiosqlite
 import discord
 from aiosqlite import Error
 
+database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy-dev/glumbo.db"
+
 async def create_connection(db_file):
     """ create a database connection to the SQLite database
         specified by db_file
@@ -19,7 +21,7 @@ async def create_connection(db_file):
 
 async def create_table():
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
         await c.execute("""CREATE TABLE userStocks (
                             userID BIGINT NOT NULL,
@@ -37,7 +39,7 @@ async def create_table():
 
 async def insert_glumbo(username, glumboAmount):
     try:
-        conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await create_connection(database)
 
         cur = await conn.cursor()
         
@@ -69,7 +71,7 @@ async def remove_glumbo(username, glumboAmount):
     :return: None
     """
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         cur = await conn.cursor()
         
         # Check if the username exists in the database
@@ -122,7 +124,7 @@ async def dep(conn, userID, glumboToDeposit):
             glumboToDeposit = int(glumboToDeposit)
 
         # If the user types "all", get all the glumbo in the cash
-        if isinstance(glumboToDeposit, str) and glumboToDeposit.lower() == "all":
+        if glumboToDeposit == None:
             glumboToDeposit = await get_cash_data(conn, userID)
 
         # Check if glumboToDeposit is an integer and greater than 0
@@ -151,7 +153,7 @@ async def withd(conn, userID, glumboToWithdraw):
         c = await conn.cursor()
 
         # If the user types "all", get all the glumbo in the bank
-        if isinstance(glumboToWithdraw, str) and glumboToWithdraw.lower() == "all":
+        if glumboToWithdraw == None:
             glumboToWithdraw = await get_bank_data(conn, userID)
         else:
             glumboToWithdraw = int(glumboToWithdraw)
@@ -306,61 +308,3 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
         print(e)
     finally:
         await conn.close()
-
-async def remove_item(itemname):
-    try:
-        # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo1.db")
-        c = await conn.cursor()
-
-        # exists returns (0,) or (1,) depending if the item exists or not
-        await c.execute("SELECT EXISTS(SELECT 1 FROM shop WHERE itemName = ?)", (itemname,))
-        exists = await c.fetchone()
-
-        # Checks if the first element of the tuple is 0 or 1
-        if exists[0] == 0:
-            return
-        elif exists[0] == 1:
-            # Selects itemID from shop database
-            await c.execute("SELECT itemID FROM shop")
-            itemIDs = await c.fetchall()
-
-            # Select itemID from itemName so we can substract every element thats above it by one, TODO: make a better name for this variable
-            await c.execute("SELECT itemID FROM shop WHERE itemName=?", itemname)
-            itemID = await c.fetchall()
-
-            # Getting the index of the item that we are gonna remove
-            item_to_remove_index = itemIDs.index(itemID)
-
-            ''' Remove the item from the shop table
-            await c.execute("""
-            DELETE FROM userItems WHERE itemID=?
-            """, (itemname))
-
-            await c.execute("""
-            DELETE FROM shop WHERE itemID=?
-            """, (itemname))'''
-
-            # TODO: THE ITEM ID WHICH WE WILL DELETE, WILL BE REMOVED BY THE PREVIOUS CODE, DO SOMETHING ABT IT
-
-            # This loops through the item_to_remove_index and adds one to it to see which element is next and loops to the end of item_IDs length
-            for i in range(item_to_remove_index + 1, len(itemIDs)):
-                itemIDs[i] -= 1
-
-
-            await conn.commit()
-        else:
-            return
-    except Exception as e:
-        print(e)
-    finally:
-        await conn.close()
-
-
-
-
-
-
-
-
-    

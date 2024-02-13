@@ -1,4 +1,5 @@
-import discord
+import nextcord as discord
+from discord import SlashOption
 import random
 import aiosqlite
 import asyncio
@@ -13,12 +14,12 @@ from database import withd
 from database import create_business
 from database import buy_stocks
 from database import sell_stocks
-from database import remove_item
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
 from config import token
 from discord.ext import commands
+from typing import Optional
 
 bot = commands.Bot(command_prefix='$', intents=discord.Intents.all())
 
@@ -26,12 +27,10 @@ bot = commands.Bot(command_prefix='$', intents=discord.Intents.all())
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
-@bot.listen()
-async def on_connect():
-    await bot.sync_commands()
+backup = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/backupdb.py"
+stocks = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/stocks.py"
 
-backup = "C:/Users/User/Desktop/python/Glumbonomy/backupdb.py"
-stocks = "C:/Users/User/Desktop/python/Glumbonomy/stocks.py"
+database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy-dev/glumbo.db"
 
 # Run the files
 subprocess.Popen(["python", backup])
@@ -56,14 +55,14 @@ async def on_command_error(ctx, error):
         await ctx.send(embed=embed)
 
 @bot.slash_command(name = "scrungler", description = "Scrungler")
-async def scrungler(ctx):
-    await ctx.respond("<:scrungler:1082698194502287400>")
+async def scrungler(interaction: discord.Interaction):
+    await interaction.response.send_message("<:scrungler:1082698194502287400>")
 
 @bot.slash_command(name = "work", description = "Work for Glumbo!")
 @commands.cooldown(1, 30, commands.BucketType.user)
-async def work(ctx):
+async def work(interaction: discord.Interaction):
     glumboAmount = random.randrange(0, 601)
-    userID = ctx.author.id
+    userID = interaction.user.id
     
     # add money to the user's account in the database
     await insert_glumbo(userID, glumboAmount)
@@ -71,24 +70,18 @@ async def work(ctx):
     embed = discord.Embed(
         title="Work", description=job, colour=discord.Color.yellow()
     )
-    await ctx.respond(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
-@bot.command()
-async def sync(ctx, interaction: discord.Interaction):
-    print("Syncing...")
-    await bot.sync()
-    print('Command tree synced.')
-
-@bot.slash_command(name = "crime", description = "Commit a crime for some Glumbo! Or get caught and lose it..")
+@bot.slash_command(name = "crime", description = "Commit a crime for some Glumbo! Or get caught and lose it.")
 @commands.cooldown(1, 900, commands.BucketType.user)
-async def crime(ctx):
+async def crime(interaction: discord.Interaction):
     try:
         glumboAmount = random.randrange(0, 1001)
         status = random.choice([True, False])
     except Exception as e:
         await print(e)
 
-    userID = ctx.author.id
+    userID = interaction.user.id
 
     try:
         if status == True:
@@ -108,21 +101,21 @@ async def crime(ctx):
         embed = discord.Embed(
             title="Crime", description=job, colour=status_color
         )
-        await ctx.respond(embed=embed)
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         await print(e)
 
 
-@bot.slash_command(name = "slut", description = "Uhhh")
+@bot.slash_command(name = "slut", description = "erm what the scallop")
 @commands.cooldown(1, 900, commands.BucketType.user)
-async def slut(ctx):
+async def slut(interaction: discord.Interaction):
     try:
         glumboAmount = random.randrange(0, 1001)
         status = random.choice([True, False])
     except Exception as e:
         await print(e)
 
-    userID = ctx.author.id
+    userID = interaction.user.id
 
     try:
         if status == True:
@@ -142,47 +135,44 @@ async def slut(ctx):
         embed = discord.Embed(
             title="Slut", description=job, colour=status_color
         )
-        await ctx.respond(embed=embed)
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         await print(e)
 
-@bot.slash_command(name = "addmoney", description = "Adds Glumbo to a userr")
-@commands.cooldown(1, 15, commands.BucketType.user)
-async def addmoney(ctx, usertogivemoneyto: discord.Option(discord.Member, "Enter a user that you want to give money to!", required=True), amountofmoneytogive: discord.Option(int, "Enter the amount of money you want to give!", required=True)):
+@bot.slash_command(description="Adds money to the user")
+async def addmoney(interaction: discord.Interaction, usertogivemoneyto: Optional[discord.Member] = SlashOption(required=True), amountofmoneytogive: Optional[int] = SlashOption(required=True)):
     try:
-        if not any(role.name == 'Admin' for role in ctx.author.roles):
+        if not any(role.name == 'Admin' for role in interaction.user.roles):
             embed = discord.Embed(
             title="Add Money", description=f"You don't have the permission to run this command!", colour=discord.Color.yellow()
         )
-            await ctx.respond(embed=embed)
+            await interaction.response.send_message(embed=embed)
             return
         usertogivemoneyto = usertogivemoneyto.id
-        conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await create_connection(database)
         await insert_glumbo(usertogivemoneyto, amountofmoneytogive)
-    except Exception as e:
         await conn.close()
-        await print(e)
+    except Exception as e:
+        print(e)
 
     embed = discord.Embed(
         title="Add Money", description=f"Added <:glumbo:1003615679200645130>{amountofmoneytogive} to the user <@{usertogivemoneyto}>", colour=discord.Color.yellow()
     )
-    await ctx.respond(embed=embed) 
-    await conn.close()
+    await interaction.response.send_message(embed=embed) 
 
-@bot.command()
+@bot.slash_command(description="Mod abuse mod abuse! Removes money from the user")
 @commands.cooldown(1, 15, commands.BucketType.user)
-async def removemoney(ctx, userToRemoveMoneyFrom: discord.Member, amountOfMoneyToRemove):
+async def removemoney(interaction: discord.Interaction, usertoremovemoneyfrom: Optional[discord.Member] = SlashOption(required=True), amountofmoneytoremove: Optional[int] = SlashOption(required=True)):
     try:
-        if not any(role.name == 'Admin' for role in ctx.author.roles):
+        if not any(role.name == 'Admin' for role in interaction.user.roles):
             embed = discord.Embed(
             title="Add Money", description=f"You don't have the permission to run this command!", colour=discord.Color.yellow()
         )
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
             return
-        print(userToRemoveMoneyFrom.id)
-        data = await remove_glumbo(userToRemoveMoneyFrom.id, amountOfMoneyToRemove)
+        data = await remove_glumbo(usertoremovemoneyfrom.id, amountofmoneytoremove)
     except Exception as e:
-        await print(e)
+        print(e)
 
     if data == "This user doesn't have any money to remove!":
         embed = discord.Embed(
@@ -196,66 +186,74 @@ async def removemoney(ctx, userToRemoveMoneyFrom: discord.Member, amountOfMoneyT
         
     else:
         embed = discord.Embed(
-            title="Remove Money", description=f"Removed <:glumbo:1003615679200645130>{amountOfMoneyToRemove} from the user {userToRemoveMoneyFrom.mention}", colour=discord.Color.yellow()
+            title="Remove Money", description=f"Removed <:glumbo:1003615679200645130>{amountofmoneytoremove} from the user {usertoremovemoneyfrom.mention}", colour=discord.Color.yellow()
         )
-    await ctx.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
     
 
-@bot.command()
+@bot.slash_command(description="Rob a user! If you fail, you lose your glumbo.")
 @commands.cooldown(1, 5400, commands.BucketType.user)
-async def rob(ctx, userToRemoveMoneyFrom: discord.Member):
+async def rob(interaction: discord.Interaction, usertoremovemoneyfrom: Optional[discord.Member] = SlashOption(required=True)):
+    # 40% of robbery success
     status = random.random() < 0.4
     try:
-        conn = await create_connection("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await create_connection(database)
     except Exception as e:
         await print(e)
-    
+ 
     try:
-        if ctx.author.id == userToRemoveMoneyFrom.id:
+        if interaction.user.id == usertoremovemoneyfrom.id:
             embed = discord.Embed(
             title="Rob", description=f"Why would you need to rob yourself?", colour=discord.Color.red()
             )
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
             return
-        amountOfMoneyStolen = await get_cash_data(conn, userToRemoveMoneyFrom.id) * 0.4
+        amountOfMoneyStolen = await get_cash_data(conn, usertoremovemoneyfrom.id) * 0.4
+
+        # If the robber got the 40% chance to rob a user
         if status < 0.4:
+            # If the user has no money to steal(cash, not bank)
             if amountOfMoneyStolen <= 0.0:
                 embed = discord.Embed(
-                    title="Rob", description=f"{userToRemoveMoneyFrom.mention} does not have any glumbo to rob! Epic fail!", colour=discord.Color.red()
+                    title="Rob", description=f"{usertoremovemoneyfrom.mention} does not have any glumbo to rob! Epic fail!", colour=discord.Color.red()
                 )
+            # Steals the money
             else:
-                amountOfMoney = await get_cash_data(conn, userToRemoveMoneyFrom.id)
+                amountOfMoney = await get_cash_data(conn, usertoremovemoneyfrom.id)
                 amountOfMoneyStolen = round(amountOfMoney * 0.4)
-                amountOfMoneyStolen = await remove_glumbo(userToRemoveMoneyFrom.id, amountOfMoneyStolen)
+                amountOfMoneyStolen = await remove_glumbo(usertoremovemoneyfrom.id, amountOfMoneyStolen)
                 embed = discord.Embed(
-                title="Rob", description=f"Stole <:glumbo:1003615679200645130>{amountOfMoneyStolen} from the user {userToRemoveMoneyFrom.mention}", colour=discord.Color.yellow()
+                title="Rob", description=f"Stole <:glumbo:1003615679200645130>{amountOfMoneyStolen} from the user {usertoremovemoneyfrom.mention}", colour=discord.Color.yellow()
             )
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
+        # Rip bozo
         else:
             fine = random.randrange(0, 1901)
-            amountOfMoneyStolen = await remove_glumbo(ctx.author.id, fine)
+            amountOfMoneyStolen = await remove_glumbo(interaction.user.id, fine)
             embed = discord.Embed(
-                title="Rob", description=f"You tried to rob {userToRemoveMoneyFrom.mention}, but you were caught and paid a <:glumbo:1003615679200645130>{fine} fine!", colour=discord.Color.red()
+                title="Rob", description=f"You tried to rob {usertoremovemoneyfrom.mention}, but you were caught and paid a <:glumbo:1003615679200645130>{fine} fine!", colour=discord.Color.red()
             )
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
 
         if amountOfMoneyStolen == "This user doesn't have any money to rob!":
             embed = discord.Embed(
                 title="Rob", description=f"{amountOfMoneyStolen}", colour=discord.Color.yellow()
             )
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
     except Exception as e:
         await conn.close()
         await print(e)
     finally:
         await conn.close()
 
-@bot.slash_command(name="balance", description="Shows your balance", aliases="bal")
+@bot.slash_command(name="balance", description="Shows your balance")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def balance(ctx):
+async def balance(interaction: discord.Interaction):
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
-        userID = ctx.author.id
+        conn = await aiosqlite.connect(database)
+        userID = interaction.user.id
+
+        # Gets the amount of cash and bank cash the user has
         cash = await get_cash_data(conn, userID)
         bank = await get_bank_data(conn, userID)
     except Exception as e:
@@ -264,40 +262,41 @@ async def balance(ctx):
 
     if cash and bank == "You don't have any glumbo!":
         embed = discord.Embed(
-        title=f"{ctx.author.name}'s balance", description=f"You don't have any glumbo!", colour=discord.Color.yellow()
+        title=f"{interaction.user.name}'s balance", description=f"You don't have any glumbo!", colour=discord.Color.yellow()
     )
     else:
         embed = discord.Embed(
-        title=f"{ctx.author.name}'s balance", description=f"Cash: <:glumbo:1003615679200645130>{cash}; Bank: <:glumbo:1003615679200645130>{bank}", colour=discord.Color.yellow()
+        title=f"{interaction.user.name}'s balance", description=f"Cash: <:glumbo:1003615679200645130>{cash}; Bank: <:glumbo:1003615679200645130>{bank}", colour=discord.Color.yellow()
     )
 
-    await ctx.response(embed=embed)
+    await interaction.response.send_message(embed=embed)
     await conn.close()
 
-@bot.slash_command(name="deposit", description="Deposits your money into the bank account", aliases="dep")
+@bot.slash_command(name="deposit", description="Deposits your money into the bank account")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def deposit(ctx, glumbotodeposit = discord.Option(required=True)):
+async def deposit(interaction: discord.Interaction, glumbotodeposit: Optional[int]):
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
-        userID = ctx.author.id
+        conn = await aiosqlite.connect(database)
+        userID = interaction.user.id
         glumbotodeposit = await dep(conn, userID, glumbotodeposit)
 
         embed = discord.Embed(title="Deposit", description=glumbotodeposit, color=discord.Color.yellow())
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
     except Exception as e:
         print(e)
 
-@bot.command(aliases=['with'])
+ 
+@bot.slash_command(description="Withdraws your money!")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def withdraw(ctx, glumboToWithdraw = None):
+async def withdraw(interaction: discord.Interaction, glumbotowithdraw: Optional[int] = SlashOption(default=None)):
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
-        userID = ctx.author.id
-        glumboToWithdraw = await withd(conn, userID, glumboToWithdraw)
+        conn = await aiosqlite.connect(database)
+        userID = interaction.user.id
+        glumbotowithdraw = await withd(conn, userID, glumbotowithdraw)
 
-        embed = discord.Embed(title="Withdraw", description=glumboToWithdraw, color=discord.Color.yellow())
-        await ctx.send(embed=embed)
+        embed = discord.Embed(title="Withdraw", description=glumbotowithdraw, color=discord.Color.yellow())
+        await interaction.response.send_message(embed=embed)
 
     except Exception as e:
         await conn.close()
@@ -305,10 +304,10 @@ async def withdraw(ctx, glumboToWithdraw = None):
 
 @bot.slash_command(name="shop", description="Opens the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def shop(ctx):
+async def shop(interaction: discord.Interaction):
     try:
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Query the shop table for all items
@@ -326,7 +325,7 @@ async def shop(ctx):
             embed.add_field(name=f"{item[1]} (ID: {item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[2]}, Description: {item[3]}", inline=False)
 
         # Send the embed
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         await conn.close()
         await print(e)
@@ -335,10 +334,10 @@ async def shop(ctx):
 @bot.slash_command(name="additem", description="Adds an item to the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
 @commands.has_permissions(administrator=True)
-async def additem(ctx, itemname: discord.Option(str, required=True), itemdescription: discord.Option(str, required=False), price: discord.Option(int, required=True), message: discord.Option(str, required=False, default=None), roleid: discord.Option(int, default=None)):
+async def additem(interaction: discord.Interaction, itemname: Optional[str] = SlashOption(required=True), price: Optional[int] = SlashOption(required=True), itemdescription: Optional[str] = SlashOption(required=False), message: Optional[str] = SlashOption(required=False, default=None), roleid: Optional[int] = SlashOption(required=False, default=None)):
     try:           
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Insert the new item into the shop table
@@ -351,33 +350,52 @@ async def additem(ctx, itemname: discord.Option(str, required=True), itemdescrip
         embed = discord.Embed(
             title="Shop", description=f"Item {itemname} has been successfully added to the shop with the price of <:glumbo:1003615679200645130>{price}!", color=discord.colour.Color.yellow()
         )
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
         # Close the connection
         await conn.close()
     except Exception as e:
         await conn.close()
-        await print(e)
+        print(e)
 
-@bot.command()
+@bot.slash_command(name="removeitem", description="Removes an item from the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
 @commands.has_permissions(administrator=True)
-async def removeitem(ctx, itemname: discord.Option(str)):       
-    await remove_item(itemname)
+async def removeitem(interaction = discord.Interaction, itemid: Optional[int] = SlashOption(required=True)):       
+    try:           
+        # Connect to the database
+        conn = await aiosqlite.connect(database)
+        c = await conn.cursor()
 
-    embed = discord.Embed(
-        title="Shop", description=f"Item {itemname} has been successfully removed from the shop!", color=discord.colour.Color.yellow()
-    )
-    await ctx.send(embed=embed)
+        # Insert the new item into the shop table
+        await c.execute("""
+        DELETE FROM userItems WHERE itemID=?
+        """, (itemid,))
 
-@bot.command()
+        await c.execute("""
+        DELETE FROM shop WHERE itemID=?
+        """, (itemid,))
+
+        await conn.commit()
+
+        embed = discord.Embed(
+            title="Shop", description=f"Item {itemid} has been successfully removed from the shop!", color=discord.colour.Color.yellow()
+        )
+        await interaction.response.send_message(embed=embed)
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
+
+
+@bot.slash_command(description="Use the items you bought from shop!")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def use(ctx, itemName):
+async def use(interaction: discord.Interaction, itemname: Optional[str]):
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
         sql = "SELECT roleID, message, itemID FROM shop WHERE itemName = ?"
-        await c.execute(sql, (itemName,))
+        await c.execute(sql, (itemname,))
         row = await c.fetchone()
         
         if row is not None:
@@ -385,52 +403,60 @@ async def use(ctx, itemName):
 
             # Check if the user has the item
             sql = "SELECT * FROM userItems WHERE userID = ? AND itemID = ?"
-            await c.execute(sql, (ctx.author.id, itemID))
+            await c.execute(sql, (interaction.user.id, itemID))
             user_item = await c.fetchone()
 
+            # this looks so fucking complicated, but it works
+            # If the user has an item
             if user_item is not None:
+                # If the item has a role id to give
                 if role_id:
-                    role = ctx.guild.get_role(role_id)
+                    role = interaction.guild.get_role(role_id)
+                    # If role exists(i guess)
                     if role:
-                        if role in ctx.author.roles:
+                        # If the user has that role
+                        if role in interaction.user.roles:
                             embed = discord.Embed(
                                 title="Shop", description="You already have that role!", color=discord.colour.Color.red()
                             )
+                        # Adds the role and removes the item
                         else:
-                            await ctx.author.add_roles(role)
+                            await interaction.user.add_roles(role)
                             sql = "DELETE FROM userItems WHERE userID = ? AND itemID = ?"
-                            await c.execute(sql, (ctx.author.id, itemID))
+                            await c.execute(sql, (interaction.user.id, itemID))
                             await conn.commit()
 
                             embed = discord.Embed(
                                 title="Shop", description=f"You have been given the {role.name} role.", color=discord.colour.Color.yellow()
                             )
-                        await ctx.send(embed=embed)
+                        await interaction.response.send_message(embed=embed)
                     else:
                         embed = discord.Embed(
                                 title="Shop", description="Role not found!", color=discord.colour.Color.red()
                             )
-                        await ctx.send(embed=embed)
+                        await interaction.response.send_message(embed=embed)
+                # Else if the item has a message to send when used
                 elif message:
                     sql = "DELETE FROM userItems WHERE userID = ? AND itemID = ?"
-                    await c.execute(sql, (ctx.author.id, itemID))
+                    await c.execute(sql, (interaction.user.id, itemID))
                     await conn.commit()
-                    await ctx.send(message)
+                    await interaction.response.send_message(message)
+                # Embed fail
                 else:
                     embed = discord.Embed(
                         title="Shop", description="This item does not give any roles or messages!", color=discord.colour.Color.red()
                     )
-                    await ctx.send(embed=embed)
+                    await interaction.response.send_message(embed=embed)
             else:
                 embed = discord.Embed(
                     title="Shop", description="You do not have this item.", color=discord.colour.Color.red()
                 )
-                await ctx.send(embed=embed)
+                await interaction.response.send_message(embed=embed)
         else:
             embed = discord.Embed(
                 title="Shop", description="Item not found in the shop.", color=discord.colour.Color.red()
             )
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
 
         await conn.close()
     except Exception as e:
@@ -438,19 +464,19 @@ async def use(ctx, itemName):
         print(e)
 
 
-@bot.command()
+@bot.slash_command(description="Buy an item from the shop!")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def buy(ctx, itemName: str):
+async def buy(interaction: discord.Interaction, itemname: Optional[str] = SlashOption(required=True)):
     try:
 
-        userID = ctx.author.id
+        userID = interaction.user.id
 
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Check if the item exists in the shop
-        await c.execute("SELECT * FROM shop WHERE itemName = ?", (itemName,))
+        await c.execute("SELECT * FROM shop WHERE itemName = ?", (itemname,))
         item = await c.fetchone()
 
         # Check if the user has enough money to buy the item
@@ -460,35 +486,35 @@ async def buy(ctx, itemName: str):
         
         # Get item price
 
-        await c.execute("SELECT price FROM shop WHERE itemName = ?", (itemName,))
+        await c.execute("SELECT price FROM shop WHERE itemName = ?", (itemname,))
         price = (await c.fetchone())[0]
 
         if cash < price:
             embed = discord.Embed(title="Shop", description="You don't have enough cash to buy this item!", color=discord.Color.yellow())
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
         else:
             if item is None:
-                await ctx.send("This item does not exist in the shop.")
+                await interaction.response.send_message("This item does not exist in the shop.")
             else:
                 # If the item exists, insert a new record into the userItems table
                 await c.execute("INSERT INTO userItems (userID, itemID) VALUES (?, ?)", (userID, item[0]))
                 await c.execute("UPDATE userData SET cash = cash - ? WHERE userID = ?", (price, userID,))
                 await conn.commit()
-                embed = discord.Embed(title="Shop", description=f"You have successfully bought {itemName}!", color=discord.Color.yellow())
-                await ctx.send(embed=embed)
+                embed = discord.Embed(title="Shop", description=f"You have successfully bought {itemname}!", color=discord.Color.yellow())
+                await interaction.response.send_message(embed=embed)
     except Exception as e:
         print(e)
     finally:
         # Close the connection
         await conn.close()
 
-@bot.command(aliases=['inv'])
+@bot.slash_command(description="Check your item inventory!")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def inventory(ctx):
-    userID = ctx.author.id
+async def inventory(interaction: discord.Interaction):
+    userID = interaction.user.id
 
     # Connect to the database
-    conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+    conn = await aiosqlite.connect(database)
     c = await conn.cursor()
 
     # Query the userItems table for items owned by the user
@@ -508,63 +534,63 @@ async def inventory(ctx):
             title="Inventory", description=f"You own the following items: {item_list}", color=discord.colour.Color.yellow()
         )
 
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     else:
         # If the user does not own any items, send a message to inform them
         embed = discord.Embed(title="Shop", description=f"You do not own any items!", color=discord.Color.red())
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     # Close the connection
     await conn.close()
 
 
-@bot.command()
+@bot.slash_command(description="Creates a business. Requires 100,000 Glumbo and Amazing Shack role")
 @commands.has_role(998911733081067570)
 @commands.cooldown(1, 15, commands.BucketType.user)
-async def createbusiness(ctx, businessName, stockName, stockPrice):
+async def createbusiness(interaction: discord.Interaction, businessname: Optional[str] = SlashOption(required=True), stockname: Optional[str] = SlashOption(required=True), stockprice: Optional[int] = SlashOption(required=False)):
     try:
-        stockName = stockName.upper()
-        stockPrice = int(stockPrice) 
-        if len(stockName) == 4:
-            userID = ctx.author.id
-            conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        stockname = stockname.upper()
+        stockprice = int(stockprice) 
+        if len(stockname) == 4:
+            userID = interaction.user.id
+            conn = await aiosqlite.connect(database)
             cash = await get_cash_data(conn, userID) 
 
-            if stockPrice > 10001:
+            if stockprice > 10001:
                 embed = discord.Embed(title="Business", description=f"Your stock price can't be bigger than 10000 glumbo!", color=discord.Color.yellow())
-                await ctx.send(embed=embed)
+                await interaction.response.send_message(embed=embed)
                 return
 
             if int(cash) >= 100000:
-                data = await create_business(conn, userID, businessName, stockName, stockPrice)
+                data = await create_business(conn, userID, businessname, stockname, stockprice)
 
                 if data == "User already has a business.":
                     embed = discord.Embed(title="Business", description=f"{data}", color=discord.Color.yellow())
-                    await ctx.send(embed=embed)
+                    await interaction.response.send_message(embed=embed)
                     return
-                elif stockPrice > 0:                   
+                elif stockprice > 0:                   
                     await remove_glumbo(userID, 100000)
                     embed = discord.Embed(title="Business", description=f"{data}", color=discord.Color.yellow())
-                    await ctx.send(embed=embed)
+                    await interaction.response.send_message(embed=embed)
                 else:
                     embed = discord.Embed(title="Business", description=f"Your stock price can't be 0 or less!", color=discord.Color.red())
-                    await ctx.send(embed=embed)
+                    await interaction.response.send_message(embed=embed)
             else:
                 embed = discord.Embed(title="Business", description=f"You can't don't have enough glumbo to create a business!", color=discord.Color.red())
-                await ctx.send(embed=embed)
+                await interaction.response.send_message(embed=embed)
         else:
             embed = discord.Embed(title="Business", description=f"Your stock name can't be less or greater than 4 characters!", color=discord.Color.red())
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
     except Exception as e:
         print(e)
     finally:
         await conn.close()
         
-@bot.command()
+@bot.slash_command(description="Shows what stocks are available on the stock market")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def stocks(ctx):
+async def stocks(interaction: discord.Interaction):
     try:
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Query the business table for all items
@@ -585,51 +611,51 @@ async def stocks(ctx):
             embed.add_field(name=f"{item[2]} Company: ({item[0]})", value=f"Price: <:glumbo:1003615679200645130>{item[3]}, Company owner: {user.mention}, Percentage change: {stockChange}%", inline=False)
 
         # Send the embed
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         await print(e)
     finally:
         await conn.close()
 
 
-@bot.command()
+@bot.slash_command(description="Buys a stock from the stock market")
 @commands.cooldown(1, 15, commands.BucketType.user)
-async def buystock(ctx, stockName, stockAmount):
+async def buystock(interaction: discord.Interaction, stockname: Optional[str] = SlashOption(required=True), stockamount: Optional[int] = SlashOption(required=True)):
     try:      
-       conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")       
-       userID = ctx.author.id
+       conn = await aiosqlite.connect(database)       
+       userID = interaction.user.id
        import cProfile
-       data = await buy_stocks(conn, userID, stockName, int(stockAmount))
+       data = await buy_stocks(conn, userID, stockname, int(stockamount))
        embed = discord.Embed(title="Stocks", description=data, color=discord.Color.yellow())
-       await ctx.send(embed=embed)
+       await interaction.response.send_message(embed=embed)
 
     except Exception as e:
         print(e)
 
-
-@bot.command()
+# TODO: IMPLEMENT A CHECK THAT CONVERTS STOCK AMOUNT TO INT, AND IF ITS A STRING AND SAYS ALL, SELL ALL
+@bot.slash_command(description="Sells a stock")
 @commands.cooldown(1, 15, commands.BucketType.user)
-async def sellstock(ctx, stockName, stockAmount):
+async def sellstock(interaction: discord.Interaction, stockname: Optional[str] = SlashOption(required=True), stockamount: Optional[int] = SlashOption(required=True)):
     try:
-        conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
-        userID = ctx.author.id
+        conn = await aiosqlite.connect(database)
+        userID = interaction.user.id
 
-        if stockAmount.lower() == 'all':
+        if stockamount.lower() == 'all':
             # Perform the sell operation for all stocks
-            data = await sell_stocks(conn, userID, stockName, stockAmount)
-        elif stockAmount.isdigit() and int(stockAmount) > 0:
+            data = await sell_stocks(conn, userID, stockname, stockamount)
+        elif stockamount.isdigit() and int(stockamount) > 0:
             # Perform the sell operation for the specified quantity
-            data = await sell_stocks(conn, userID, stockName, int(stockAmount))
+            data = await sell_stocks(conn, userID, stockname, int(stockamount))
         else:
-            await ctx.send("Please provide a valid quantity of stocks to sell.")
+            await interaction.response.send_message("Please provide a valid quantity of stocks to sell.")
             return
 
         embed = discord.Embed(title="Stocks", description=data, color=discord.Color.yellow())
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
     except Exception as e:
         print(e)
-        await ctx.send("An error occurred while processing your request.")
+        await interaction.response.send_message("An error occurred while processing your request.")
 
     finally:
         # Close the connection
@@ -637,13 +663,13 @@ async def sellstock(ctx, stockName, stockAmount):
             await conn.close()
 
 
-@bot.command(aliases=['stockinv'])
+@bot.slash_command(description="Shows what stocks you have")
 @commands.cooldown(1, 10, commands.BucketType.user)
-async def stockinventory(ctx):
-    userID = ctx.author.id
+async def stockinventory(interaction: discord.Interaction):
+    userID = interaction.user.id
 
     # Connect to the database
-    conn = await aiosqlite.connect("C:/Users/User/Desktop/python/glumbo.db")
+    conn = await aiosqlite.connect(database)
     c = await conn.cursor()
 
     # Query the userItems table for items owned by the user
@@ -662,11 +688,11 @@ async def stockinventory(ctx):
             title="Inventory", description=f"You own the following stocks: {stock_list}", color=discord.colour.Color.yellow()
         )
 
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     else:
         # If the user does not own any items, send a message to inform them
         embed = discord.Embed(title="Shop", description=f"You do not own any stocks!", color=discord.Color.red())
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     # Close the connection
     await conn.close()
 
