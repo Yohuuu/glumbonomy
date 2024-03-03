@@ -5,7 +5,7 @@ import asyncio
 async def changeStockPrice():
     try:
         while True:  # This will keep the function running indefinitely
-            conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db")
+            conn = await aiosqlite.connect("glumbo.db")
             c = await conn.cursor()
 
             # Fetch all stock names, stocks sold and bought

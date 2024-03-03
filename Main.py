@@ -14,6 +14,8 @@ from database import withd
 from database import create_business
 from database import buy_stocks
 from database import sell_stocks
+from database import addItemDB
+from database import removeItemDB
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
@@ -27,10 +29,10 @@ bot = commands.Bot(command_prefix='$', intents=discord.Intents.all())
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
-backup = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/backupdb.py"
-stocks = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/stocks.py"
+backup = "backupdb.py"
+stocks = "stocks.py"
 
-database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db"
+database = "glumbo.db"
 
 # Run the files
 subprocess.Popen(["python", backup])
@@ -334,59 +336,23 @@ async def shop(interaction: discord.Interaction):
 @bot.slash_command(name="additem", description="Adds an item to the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
 @commands.has_permissions(administrator=True)
-async def additem(interaction: discord.Interaction, itemname: Optional[str] = SlashOption(required=True), price: Optional[int] = SlashOption(required=True), itemdescription: Optional[str] = SlashOption(required=False), message: Optional[str] = SlashOption(required=False, default=None), roleid: Optional[int] = SlashOption(required=False, default=None)):
-    try:           
-        # Connect to the database
-        conn = await aiosqlite.connect(database)
-        c = await conn.cursor()
+async def addtem(interaction: discord.Interaction, itemname: Optional[str] = SlashOption(required=True), price: Optional[int] = SlashOption(required=True), itemdescription: Optional[str] = SlashOption(required=False), message: Optional[str] = SlashOption(required=False, default=None), roleid: Optional[int] = SlashOption(required=False, default=None)):
+    await addItemDB(itemname, itemdescription, price, message, roleid)
 
-        # Insert the new item into the shop table
-        await c.execute("""
-        INSERT INTO shop (itemName, itemDescription, price, message, roleID) 
-        VALUES (?, ?, ?, ?, ?)
-        """, (itemname, itemdescription, price, message, roleid))
-        await conn.commit()
-
-        embed = discord.Embed(
-            title="Shop", description=f"Item {itemname} has been successfully added to the shop with the price of <:glumbo:1003615679200645130>{price}!", color=discord.colour.Color.yellow()
-        )
-        await interaction.response.send_message(embed=embed)
-
-        # Close the connection
-        await conn.close()
-    except Exception as e:
-        await conn.close()
-        print(e)
+    embed = discord.Embed(
+        title="Shop", description=f"Item {itemname} has been successfully added to the shop with the price of <:glumbo:1003615679200645130>{price}!", color=discord.colour.Color.yellow()
+    )
+    await interaction.response.send_message(embed=embed)
 
 @bot.slash_command(name="removeitem", description="Removes an item from the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
 @commands.has_permissions(administrator=True)
-async def removeitem(interaction = discord.Interaction, itemid: Optional[int] = SlashOption(required=True)):       
-    try:           
-        # Connect to the database
-        conn = await aiosqlite.connect(database)
-        c = await conn.cursor()
-
-        # Insert the new item into the shop table
-        await c.execute("""
-        DELETE FROM userItems WHERE itemID=?
-        """, (itemid,))
-
-        await c.execute("""
-        DELETE FROM shop WHERE itemID=?
-        """, (itemid,))
-
-        await conn.commit()
-
-        embed = discord.Embed(
-            title="Shop", description=f"Item {itemid} has been successfully removed from the shop!", color=discord.colour.Color.yellow()
-        )
-        await interaction.response.send_message(embed=embed)
-    except Exception as e:
-        print(e)
-    finally:
-        await conn.close()
-
+async def removeitem(interaction = discord.Interaction, itemid: Optional[int] = SlashOption(required=True)):
+    await removeItemDB(itemid)       
+    embed = discord.Embed(
+        title="Shop", description=f"Item {itemid} has been successfully removed from the shop!", color=discord.colour.Color.yellow()
+    )
+    await interaction.response.send_message(embed=embed)
 
 @bot.slash_command(description="Use the items you bought from shop!")
 @commands.cooldown(1, 10, commands.BucketType.user)

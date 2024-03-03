@@ -2,7 +2,7 @@ import aiosqlite
 import discord
 from aiosqlite import Error
 
-database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db"
+database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbonomy/glumbo.db"
 
 async def create_connection(db_file):
     """ create a database connection to the SQLite database
@@ -304,6 +304,43 @@ async def sell_stocks(conn, userID, stockName, stockAmount):
                 return f"You have successfully sold {stockAmount} of {stockName} for {price * stockAmount}!"
         else:
             return "You don't own this stock!"
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
+
+async def addItemDB(itemname, itemdescription, price, message, roleid):
+    try:         
+        conn = await aiosqlite.connect(database)
+        c = await conn.cursor()
+
+        # Insert the new item into the shop table
+        await c.execute("""
+        INSERT INTO shop (itemName, itemDescription, price, message, roleID) 
+        VALUES (?, ?, ?, ?, ?)
+        """, (itemname, itemdescription, price, message, roleid))
+        await conn.commit()
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
+
+async def removeItemDB(itemid):
+    try:           
+        # Connect to the database
+        conn = await aiosqlite.connect(database)
+        c = await conn.cursor()
+
+        # Insert the new item into the shop table
+        await c.execute("""
+        DELETE FROM userItems WHERE itemID=?
+        """, (itemid,))
+
+        await c.execute("""
+        DELETE FROM shop WHERE itemID=?
+        """, (itemid,))
+
+        await conn.commit()
     except Exception as e:
         print(e)
     finally:
