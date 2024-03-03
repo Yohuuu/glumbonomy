@@ -17,7 +17,6 @@ from database import sell_stocks
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
-from config import token
 from discord.ext import commands
 from typing import Optional
 
