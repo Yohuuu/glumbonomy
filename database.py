@@ -1,5 +1,4 @@
 import aiosqlite
-import discord
 from aiosqlite import Error
 
 database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbonomy/glumbo.db"
@@ -71,7 +70,7 @@ async def remove_glumbo(username, glumboAmount):
     :return: None
     """
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db")
+        conn = await aiosqlite.connect(database)
         cur = await conn.cursor()
         
         # Check if the username exists in the database
