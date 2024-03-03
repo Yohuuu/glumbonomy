@@ -17,6 +17,7 @@ from database import sell_stocks
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
+from config import token
 from discord.ext import commands
 from typing import Optional
 
@@ -28,6 +29,8 @@ async def on_ready():
 
 backup = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/backupdb.py"
 stocks = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/stocks.py"
+
+database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db"
 
 # Run the files
 subprocess.Popen(["python", backup])
@@ -146,7 +149,7 @@ async def addmoney(interaction: discord.Interaction, usertogivemoneyto: Optional
             await interaction.response.send_message(embed=embed)
             return
         usertogivemoneyto = usertogivemoneyto.id
-        conn = await create_connection("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await create_connection(database)
         await insert_glumbo(usertogivemoneyto, amountofmoneytogive)
         await conn.close()
     except Exception as e:
@@ -194,7 +197,7 @@ async def rob(interaction: discord.Interaction, usertoremovemoneyfrom: Optional[
     # 40% of robbery success
     status = random.random() < 0.4
     try:
-        conn = await create_connection("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await create_connection(database)
     except Exception as e:
         await print(e)
  
@@ -247,7 +250,7 @@ async def rob(interaction: discord.Interaction, usertoremovemoneyfrom: Optional[
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def balance(interaction: discord.Interaction):
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         userID = interaction.user.id
 
         # Gets the amount of cash and bank cash the user has
@@ -273,7 +276,7 @@ async def balance(interaction: discord.Interaction):
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def deposit(interaction: discord.Interaction, glumbotodeposit: Optional[int]):
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         userID = interaction.user.id
         glumbotodeposit = await dep(conn, userID, glumbotodeposit)
 
@@ -283,13 +286,12 @@ async def deposit(interaction: discord.Interaction, glumbotodeposit: Optional[in
     except Exception as e:
         print(e)
 
-
-# TODO: make a check if its an integer or "all"
+ 
 @bot.slash_command(description="Withdraws your money!")
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def withdraw(interaction: discord.Interaction, glumbotowithdraw: Optional[int] = SlashOption(default=None)):
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         userID = interaction.user.id
         glumbotowithdraw = await withd(conn, userID, glumbotowithdraw)
 
@@ -305,7 +307,7 @@ async def withdraw(interaction: discord.Interaction, glumbotowithdraw: Optional[
 async def shop(interaction: discord.Interaction):
     try:
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Query the shop table for all items
@@ -335,7 +337,7 @@ async def shop(interaction: discord.Interaction):
 async def additem(interaction: discord.Interaction, itemname: Optional[str] = SlashOption(required=True), price: Optional[int] = SlashOption(required=True), itemdescription: Optional[str] = SlashOption(required=False), message: Optional[str] = SlashOption(required=False, default=None), roleid: Optional[int] = SlashOption(required=False, default=None)):
     try:           
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Insert the new item into the shop table
@@ -362,7 +364,7 @@ async def additem(interaction: discord.Interaction, itemname: Optional[str] = Sl
 async def removeitem(interaction = discord.Interaction, itemid: Optional[int] = SlashOption(required=True)):       
     try:           
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Insert the new item into the shop table
@@ -390,7 +392,7 @@ async def removeitem(interaction = discord.Interaction, itemid: Optional[int] = 
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def use(interaction: discord.Interaction, itemname: Optional[str]):
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
         sql = "SELECT roleID, message, itemID FROM shop WHERE itemName = ?"
         await c.execute(sql, (itemname,))
@@ -470,7 +472,7 @@ async def buy(interaction: discord.Interaction, itemname: Optional[str] = SlashO
         userID = interaction.user.id
 
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Check if the item exists in the shop
@@ -512,7 +514,7 @@ async def inventory(interaction: discord.Interaction):
     userID = interaction.user.id
 
     # Connect to the database
-    conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+    conn = await aiosqlite.connect(database)
     c = await conn.cursor()
 
     # Query the userItems table for items owned by the user
@@ -550,7 +552,7 @@ async def createbusiness(interaction: discord.Interaction, businessname: Optiona
         stockprice = int(stockprice) 
         if len(stockname) == 4:
             userID = interaction.user.id
-            conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+            conn = await aiosqlite.connect(database)
             cash = await get_cash_data(conn, userID) 
 
             if stockprice > 10001:
@@ -588,7 +590,7 @@ async def createbusiness(interaction: discord.Interaction, businessname: Optiona
 async def stocks(interaction: discord.Interaction):
     try:
         # Connect to the database
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
 
         # Query the business table for all items
@@ -620,7 +622,7 @@ async def stocks(interaction: discord.Interaction):
 @commands.cooldown(1, 15, commands.BucketType.user)
 async def buystock(interaction: discord.Interaction, stockname: Optional[str] = SlashOption(required=True), stockamount: Optional[int] = SlashOption(required=True)):
     try:      
-       conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")       
+       conn = await aiosqlite.connect(database)       
        userID = interaction.user.id
        import cProfile
        data = await buy_stocks(conn, userID, stockname, int(stockamount))
@@ -635,7 +637,7 @@ async def buystock(interaction: discord.Interaction, stockname: Optional[str] = 
 @commands.cooldown(1, 15, commands.BucketType.user)
 async def sellstock(interaction: discord.Interaction, stockname: Optional[str] = SlashOption(required=True), stockamount: Optional[int] = SlashOption(required=True)):
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         userID = interaction.user.id
 
         if stockamount.lower() == 'all':
@@ -667,7 +669,7 @@ async def stockinventory(interaction: discord.Interaction):
     userID = interaction.user.id
 
     # Connect to the database
-    conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+    conn = await aiosqlite.connect(database)
     c = await conn.cursor()
 
     # Query the userItems table for items owned by the user

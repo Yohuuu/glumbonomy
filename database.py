@@ -2,6 +2,8 @@ import aiosqlite
 import discord
 from aiosqlite import Error
 
+database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db"
+
 async def create_connection(db_file):
     """ create a database connection to the SQLite database
         specified by db_file
@@ -19,7 +21,7 @@ async def create_connection(db_file):
 
 async def create_table():
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect(database)
         c = await conn.cursor()
         await c.execute("""CREATE TABLE userStocks (
                             userID BIGINT NOT NULL,
@@ -37,7 +39,7 @@ async def create_table():
 
 async def insert_glumbo(username, glumboAmount):
     try:
-        conn = await create_connection("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await create_connection(database)
 
         cur = await conn.cursor()
         
@@ -69,7 +71,7 @@ async def remove_glumbo(username, glumboAmount):
     :return: None
     """
     try:
-        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db")
+        conn = await aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db")
         cur = await conn.cursor()
         
         # Check if the username exists in the database

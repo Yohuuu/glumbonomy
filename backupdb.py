@@ -4,7 +4,7 @@ import asyncio
 async def backup_db():
     try:
         while True:
-            async with aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/glumbo.db") as db:
+            async with aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbo.db") as db:
                 async with aiosqlite.connect("C:/Users/2008a/OneDrive/Рабочий стол/db backups/glumbo_backup.db") as backup_db:
                     await db.backup(backup_db)
                     print("Backup complete!")
