@@ -366,8 +366,7 @@ async def addStockToUser(usertogivestockto, stocktogive, amountofstock):
             UPDATE userStocks 
             SET quantity = quantity + ?
             WHERE userID = ? AND stockName = ?
-            """, (amountofstock, usertogivestockto, stocktogive))
-
+            """, (amountofstock, usertogivestockto, stocktogive)) 
 
             await conn.commit()
 
