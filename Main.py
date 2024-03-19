@@ -352,7 +352,7 @@ async def addstock(interaction: discord.Interaction, usertogivestockto: Optional
     usertogivestockto = usertogivestockto.id
     await addStockToUser(usertogivestockto, stocktogive.upper(), int(amountofstock))
     embed = discord.Embed(
-        title="Add Money", description=f"Gave{stocktogive} to the user <@{usertogivestockto}>", colour=discord.Color.yellow()
+        title="Add Money", description=f"Gave {stocktogive} to the user <@{usertogivestockto}>", colour=discord.Color.yellow()
     )
     await interaction.response.send_message(embed=embed) 
 
