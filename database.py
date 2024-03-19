@@ -1,7 +1,7 @@
 import aiosqlite
 from aiosqlite import Error
 
-database = "C:/Users/2008a/OneDrive/Рабочий стол/python/Glumbonomy/glumbonomy/glumbo.db"
+database = "glumbo.db"
 
 async def create_connection(db_file):
     """ create a database connection to the SQLite database
@@ -22,8 +22,8 @@ async def create_table():
     try:
         conn = await aiosqlite.connect(database)
         c = await conn.cursor()
-        await c.execute("""CREATE TABLE userStocks (
-                            userID BIGINT NOT NULL,
+        await c.execute("""CREATE TABLE guildID (
+                            adminRoleID BIGINT NOT NULL,
                             stockName TEXT NOT NULL,
                             FOREIGN KEY (userID) REFERENCES userData(userID),
                             FOREIGN KEY (stockName) REFERENCES business(stockName)
@@ -340,6 +340,37 @@ async def removeItemDB(itemid):
         """, (itemid,))
 
         await conn.commit()
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
+
+async def addStockToUser(usertogivestockto, stocktogive, amountofstock):
+    try:         
+        conn = await create_connection(database)
+        c = await conn.cursor()
+
+        # Check if the user owns the item
+        sql = "SELECT * FROM userStocks WHERE userID = ?"
+        await c.execute(sql, (usertogivestockto,))
+        user_item = await c.fetchone()
+
+        if user_item is None:
+            await c.execute("""
+            INSERT INTO userStocks (userID, stockName, quantity) 
+            VALUES (?, ?, ?)
+            """, (usertogivestockto, stocktogive, amountofstock))
+            await conn.commit()
+        else:
+            await c.execute("""
+            UPDATE userStocks 
+            SET quantity = quantity + ?
+            WHERE userID = ? AND stockName = ?
+            """, (amountofstock, usertogivestockto, stocktogive))
+
+
+            await conn.commit()
+
     except Exception as e:
         print(e)
     finally:

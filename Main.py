@@ -16,6 +16,7 @@ from database import buy_stocks
 from database import sell_stocks
 from database import addItemDB
 from database import removeItemDB
+from database import addStockToUser
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
@@ -55,6 +56,12 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         embed = discord.Embed(title="Error!", description="This command is not found!", color=discord.Color.red())
         await ctx.send(embed=embed)
+
+
+@bot.slash_command(name = "setup", description = "Sets up Glumbonomy!(Owner only)")
+@commands.has_permissions(administrator = True)
+async def setup(interaction: discord.Interaction):
+    await interaction.response.send_message("<:scrungler:1082698194502287400>")
 
 @bot.slash_command(name = "scrungler", description = "Scrungler")
 async def scrungler(interaction: discord.Interaction):
@@ -142,21 +149,17 @@ async def slut(interaction: discord.Interaction):
         await print(e)
 
 @bot.slash_command(description="Adds money to the user")
+@commands.has_permissions(administrator = True)
 async def addmoney(interaction: discord.Interaction, usertogivemoneyto: Optional[discord.Member] = SlashOption(required=True), amountofmoneytogive: Optional[int] = SlashOption(required=True)):
-    try:
-        if not any(role.name == 'Admin' for role in interaction.user.roles):
-            embed = discord.Embed(
-            title="Add Money", description=f"You don't have the permission to run this command!", colour=discord.Color.yellow()
-        )
-            await interaction.response.send_message(embed=embed)
-            return
-        usertogivemoneyto = usertogivemoneyto.id
-        conn = await create_connection(database)
-        await insert_glumbo(usertogivemoneyto, amountofmoneytogive)
-        await conn.close()
-    except Exception as e:
-        print(e)
-
+    if interaction.user.guild_permissions(administrator = False):
+        embed = discord.Embed(
+        title="Add Money", description=f"You don't have the permission to run this command!", colour=discord.Color.yellow())
+        await interaction.response.send_message(embed=embed)
+        return
+             
+    usertogivemoneyto = usertogivemoneyto.id
+    await insert_glumbo(usertogivemoneyto, amountofmoneytogive)
+    
     embed = discord.Embed(
         title="Add Money", description=f"Added <:glumbo:1003615679200645130>{amountofmoneytogive} to the user <@{usertogivemoneyto}>", colour=discord.Color.yellow()
     )
@@ -343,6 +346,15 @@ async def addtem(interaction: discord.Interaction, itemname: Optional[str] = Sla
         title="Shop", description=f"Item {itemname} has been successfully added to the shop with the price of <:glumbo:1003615679200645130>{price}!", color=discord.colour.Color.yellow()
     )
     await interaction.response.send_message(embed=embed)
+
+@bot.slash_command(description="Adds stock to the user")
+async def addstock(interaction: discord.Interaction, usertogivestockto: Optional[discord.Member] = SlashOption(required=True), stocktogive: Optional[str] = SlashOption(required=True), amountofstock: Optional[int] = SlashOption(required=True)):
+    usertogivestockto = usertogivestockto.id
+    await addStockToUser(usertogivestockto, stocktogive.upper(), int(amountofstock))
+    embed = discord.Embed(
+        title="Add Money", description=f"Gave{stocktogive} to the user <@{usertogivestockto}>", colour=discord.Color.yellow()
+    )
+    await interaction.response.send_message(embed=embed) 
 
 @bot.slash_command(name="removeitem", description="Removes an item from the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
@@ -601,17 +613,16 @@ async def buystock(interaction: discord.Interaction, stockname: Optional[str] = 
 # TODO: IMPLEMENT A CHECK THAT CONVERTS STOCK AMOUNT TO INT, AND IF ITS A STRING AND SAYS ALL, SELL ALL
 @bot.slash_command(description="Sells a stock")
 @commands.cooldown(1, 15, commands.BucketType.user)
-async def sellstock(interaction: discord.Interaction, stockname: Optional[str] = SlashOption(required=True), stockamount: Optional[int] = SlashOption(required=True)):
+async def sellstock(interaction: discord.Interaction, stockname: Optional[str] = SlashOption(required=True), stockamount: Optional[str] = SlashOption(required=True)):
     try:
         conn = await aiosqlite.connect(database)
         userID = interaction.user.id
 
-        if stockamount.lower() == 'all':
+        if stockamount.isdigit() and int(stockamount) > 0:
+            data = await sell_stocks(conn, userID, stockname, int(stockamount))
+        elif stockamount.lower() == 'all':
             # Perform the sell operation for all stocks
             data = await sell_stocks(conn, userID, stockname, stockamount)
-        elif stockamount.isdigit() and int(stockamount) > 0:
-            # Perform the sell operation for the specified quantity
-            data = await sell_stocks(conn, userID, stockname, int(stockamount))
         else:
             await interaction.response.send_message("Please provide a valid quantity of stocks to sell.")
             return
@@ -624,9 +635,7 @@ async def sellstock(interaction: discord.Interaction, stockname: Optional[str] =
         await interaction.response.send_message("An error occurred while processing your request.")
 
     finally:
-        # Close the connection
-        if conn and not conn.closed:
-            await conn.close()
+        await conn.close()
 
 
 @bot.slash_command(description="Shows what stocks you have")
