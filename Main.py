@@ -352,7 +352,7 @@ async def addstock(interaction: discord.Interaction, usertogivestockto: Optional
     embed = discord.Embed(
         title="Add Money", description=f"Gave {stocktogive} to the user <@{usertogivestockto}>", colour=discord.Color.yellow()
     )
-    await interaction.response.send_message(embed=embed) 
+    await interaction.response.send_message(embed=embed)
 
 @bot.slash_command(name="removeitem", description="Removes an item from the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
