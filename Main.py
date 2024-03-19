@@ -16,6 +16,7 @@ from database import buy_stocks
 from database import sell_stocks
 from database import addItemDB
 from database import removeItemDB
+from database import addStockToUser
 from jobs import job_work
 from jobs import job_crime
 from jobs import job_slut
@@ -343,6 +344,15 @@ async def addtem(interaction: discord.Interaction, itemname: Optional[str] = Sla
         title="Shop", description=f"Item {itemname} has been successfully added to the shop with the price of <:glumbo:1003615679200645130>{price}!", color=discord.colour.Color.yellow()
     )
     await interaction.response.send_message(embed=embed)
+
+@bot.slash_command(description="Adds stock to the user")
+async def addstock(interaction: discord.Interaction, usertogivestockto: Optional[discord.Member] = SlashOption(required=True), stocktogive: Optional[str] = SlashOption(required=True), amountofstock: Optional[int] = SlashOption(required=True)):
+    usertogivestockto = usertogivestockto.id
+    await addStockToUser(usertogivestockto, stocktogive.upper(), int(amountofstock))
+    embed = discord.Embed(
+        title="Add Money", description=f"Gave {stocktogive} to the user <@{usertogivestockto}>", colour=discord.Color.yellow()
+    )
+    await interaction.response.send_message(embed=embed) 
 
 @bot.slash_command(name="removeitem", description="Removes an item from the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)

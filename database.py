@@ -344,3 +344,34 @@ async def removeItemDB(itemid):
         print(e)
     finally:
         await conn.close()
+
+async def addStockToUser(usertogivestockto, stocktogive, amountofstock):
+    try:         
+        conn = await create_connection(database)
+        c = await conn.cursor()
+
+        # Check if the user owns the item
+        sql = "SELECT * FROM userStocks WHERE userID = ?"
+        await c.execute(sql, (usertogivestockto,))
+        user_item = await c.fetchone()
+
+        if user_item is None:
+            await c.execute("""
+            INSERT INTO userStocks (userID, stockName, quantity) 
+            VALUES (?, ?, ?)
+            """, (usertogivestockto, stocktogive, amountofstock))
+            await conn.commit()
+        else:
+            await c.execute("""
+            UPDATE userStocks 
+            SET quantity = quantity + ?
+            WHERE userID = ? AND stockName = ?
+            """, (amountofstock, usertogivestockto, stocktogive))
+
+
+            await conn.commit()
+
+    except Exception as e:
+        print(e)
+    finally:
+        await conn.close()
