@@ -155,13 +155,12 @@ async def addmoney(interaction: discord.Interaction, usertogivemoneyto: Optional
         conn = await create_connection(database)
         await insert_glumbo(usertogivemoneyto, amountofmoneytogive)
         await conn.close()
+        embed = discord.Embed(
+        title="Add Money", description=f"Added <:glumbo:1003615679200645130>{amountofmoneytogive} to the user <@{usertogivemoneyto}>", colour=discord.Color.yellow()
+        )
+        await interaction.response.send_message(embed=embed) 
     except Exception as e:
         print(e)
-
-    embed = discord.Embed(
-        title="Add Money", description=f"Added <:glumbo:1003615679200645130>{amountofmoneytogive} to the user <@{usertogivemoneyto}>", colour=discord.Color.yellow()
-    )
-    await interaction.response.send_message(embed=embed) 
 
 @bot.slash_command(description="Mod abuse mod abuse! Removes money from the user")
 @commands.cooldown(1, 15, commands.BucketType.user)
