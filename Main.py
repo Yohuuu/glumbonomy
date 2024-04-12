@@ -158,7 +158,7 @@ async def addmoney(interaction: discord.Interaction, usertogivemoneyto: Optional
         embed = discord.Embed(
         title="Add Money", description=f"Added <:glumbo:1003615679200645130>{amountofmoneytogive} to the user <@{usertogivemoneyto}>", colour=discord.Color.yellow()
         )
-        await interaction.response.send_message(embed=embed) 
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         print(e)
 
@@ -336,8 +336,8 @@ async def shop(interaction: discord.Interaction):
 @bot.slash_command(name="additem", description="Adds an item to the shop")
 @commands.cooldown(1, 10, commands.BucketType.user)
 @commands.has_permissions(administrator=True)
-async def addtem(interaction: discord.Interaction, itemname: Optional[str] = SlashOption(required=True), price: Optional[int] = SlashOption(required=True), itemdescription: Optional[str] = SlashOption(required=False), message: Optional[str] = SlashOption(required=False, default=None), roleid: Optional[int] = SlashOption(required=False, default=None)):
-    await addItemDB(itemname, itemdescription, price, message, roleid)
+async def addtem(interaction: discord.Interaction, itemname: Optional[str] = SlashOption(required=True), price: Optional[int] = SlashOption(required=True), itemdescription: Optional[str] = SlashOption(required=False), message: Optional[str] = SlashOption(required=False, default=None), roleid: Optional[discord.role.Role] = SlashOption(required=False, default=None)):
+    await addItemDB(itemname, itemdescription, price, message, roleid.id)
 
     embed = discord.Embed(
         title="Shop", description=f"Item {itemname} has been successfully added to the shop with the price of <:glumbo:1003615679200645130>{price}!", color=discord.colour.Color.yellow()
